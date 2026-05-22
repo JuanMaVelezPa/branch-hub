@@ -170,7 +170,8 @@ class BranchFlowIntegrationTest {
                 "test-secret-test-secret-test-secret-123",
                 3600,
                 7200,
-                "REFRESH_TOKEN"));
+                "REFRESH_TOKEN",
+                300));
         return jwt.issueAccessToken(UUID.fromString("00000000-0000-0000-0000-000000000010").toString(), List.of("APP_ADMIN"));
     }
 }

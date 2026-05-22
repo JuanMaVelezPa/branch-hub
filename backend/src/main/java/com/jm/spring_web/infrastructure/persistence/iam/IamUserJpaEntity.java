@@ -44,6 +44,15 @@ public class IamUserJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "mfa_enabled", nullable = false)
+    private boolean mfaEnabled;
+
+    @Column(name = "mfa_secret_encrypted", length = 4000)
+    private String mfaSecretEncrypted;
+
+    @Column(name = "mfa_pending_secret_encrypted", length = 4000)
+    private String mfaPendingSecretEncrypted;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "iam_user_role",
@@ -124,6 +133,30 @@ public class IamUserJpaEntity {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isMfaEnabled() {
+        return mfaEnabled;
+    }
+
+    public void setMfaEnabled(boolean mfaEnabled) {
+        this.mfaEnabled = mfaEnabled;
+    }
+
+    public String getMfaSecretEncrypted() {
+        return mfaSecretEncrypted;
+    }
+
+    public void setMfaSecretEncrypted(String mfaSecretEncrypted) {
+        this.mfaSecretEncrypted = mfaSecretEncrypted;
+    }
+
+    public String getMfaPendingSecretEncrypted() {
+        return mfaPendingSecretEncrypted;
+    }
+
+    public void setMfaPendingSecretEncrypted(String mfaPendingSecretEncrypted) {
+        this.mfaPendingSecretEncrypted = mfaPendingSecretEncrypted;
     }
 }
 

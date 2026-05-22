@@ -16,7 +16,8 @@ class JwtTokenServiceTest {
                 "test-secret-test-secret-test-secret-123",
                 3600,
                 7200,
-                "REFRESH_TOKEN"));
+                "REFRESH_TOKEN",
+                300));
 
         String token = service.issueAccessToken("admin", List.of("APP_ADMIN"));
 
@@ -29,7 +30,8 @@ class JwtTokenServiceTest {
                 "test-secret-test-secret-test-secret-123",
                 3600,
                 7200,
-                "REFRESH_TOKEN"));
+                "REFRESH_TOKEN",
+                300));
 
         assertThrows(RuntimeException.class, () -> service.extractSubjectFromAccessToken("invalid-token"));
     }
@@ -40,7 +42,8 @@ class JwtTokenServiceTest {
                 "test-secret-test-secret-test-secret-123",
                 1,
                 2,
-                "REFRESH_TOKEN"));
+                "REFRESH_TOKEN",
+                300));
         String token = service.issueAccessToken("admin", List.of("APP_ADMIN"));
 
         Thread.sleep(1200);
@@ -49,19 +52,20 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    void shouldRejectRefreshTokenWhenParsedAsAccessToken() {
+    void shouldFailWithWeakSecret() {
+        assertThrows(WeakKeyException.class, () -> new JwtTokenService(new JwtProperties("short-secret", 3600, 7200, "REFRESH_TOKEN", 300)));
+    }
+
+    @Test
+    void shouldIssueAndParseMfaChallengeToken() {
         JwtTokenService service = new JwtTokenService(new JwtProperties(
                 "test-secret-test-secret-test-secret-123",
                 3600,
                 7200,
-                "REFRESH_TOKEN"));
-        String refreshToken = service.issueRefreshToken("admin", List.of("APP_ADMIN"));
-
-        assertThrows(RuntimeException.class, () -> service.extractSubjectFromAccessToken(refreshToken));
-    }
-
-    @Test
-    void shouldFailWithWeakSecret() {
-        assertThrows(WeakKeyException.class, () -> new JwtTokenService(new JwtProperties("short-secret", 3600, 7200, "REFRESH_TOKEN")));
+                "REFRESH_TOKEN",
+                300));
+        String subject = "00000000-0000-0000-0000-000000000099";
+        String token = service.issueMfaChallengeToken(subject);
+        assertEquals(subject, service.extractSubjectFromMfaChallengeToken(token));
     }
 }

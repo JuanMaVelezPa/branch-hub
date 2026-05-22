@@ -103,16 +103,19 @@ Phase-aligned notes (Problem Details, JWT + refresh cookie, what minification do
 
 ## Security matrix (summary)
 
-- Public: `/api/v1/auth/**`, Swagger/OpenAPI (non-prod), `GET /actuator/health`, `GET /actuator/info`
+- Public: `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/logout`, `/api/v1/auth/mfa/verify`, Swagger/OpenAPI (non-prod), `GET /actuator/health`, `GET /actuator/info`
 - Optional public: `/actuator/metrics/**`, `/actuator/prometheus` (configurable)
 - **SUPER_ADMIN:** `/api/v1/admin/**` (users, roles, **audit log** `GET /api/v1/admin/audit-logs`)
 - **SUPER_ADMIN / APP_ADMIN:** `/api/v1/branches/**`
-- **Authenticated (any role):** `GET /api/v1/me` (current user profile: id, email, roles, …)
+- **Authenticated (any role):** `GET /api/v1/me` (current user profile: id, email, roles, …); **`/api/v1/auth/sessions`** (list refresh sessions, revoke one, revoke other devices — JWT + refresh cookie where noted)
+- **SUPER_ADMIN / APP_ADMIN (bearer):** `POST /api/v1/auth/mfa/enroll/begin`, `POST /api/v1/auth/mfa/enroll/confirm` — register **TOTP** (requires `security.mfa.encryption-key-base64` / `IAM_MFA_ENCRYPTION_KEY` on the server)
 - Other routes: authenticated
 
 Spring does **not** serve the static UI; the **`web`** container (Nginx) does on host port **8080**. The API is also reachable **directly** on host port **8081** for tools and clarity.
 
-**Auth:** login sets HttpOnly refresh cookie; access token in response body (SPA keeps it in memory). `POST /api/v1/auth/logout` clears refresh cookie (`204`).
+**Auth:** login sets HttpOnly refresh cookie when the flow completes with tokens; access token in response body (SPA keeps it in memory). If the user is **SUPER_ADMIN** or **APP_ADMIN** and has **MFA (TOTP) enabled**, login returns only `mfaChallengeToken` (no refresh cookie) until `POST /api/v1/auth/mfa/verify` succeeds. `POST /api/v1/auth/logout` revokes the current refresh session server-side (when the cookie is sent) and clears the cookie (`204`). Login rate limiting applies **per client IP** and **per `username` in the JSON body** (normalized); see `security.auth-rate-limit.*` in `application.properties`.
+
+**OpenAPI:** non-prod serves Swagger UI (`/swagger-ui.html`) and **`/v3/api-docs`**. Operations that need a JWT show a lock icon and use the **Authorize** dialog (`bearerAuth`); login, refresh, logout, and MFA verify stay public in the spec.
 
 ### IAM bootstrap (local)
 
@@ -123,6 +126,16 @@ On startup, the backend can seed a first **SUPER_ADMIN** account (if missing) so
 - **Seed password:** `APP_SUPER_ADMIN_PASSWORD` (default `Admin_ChangeMe_2026!`)
 
 For production, treat this as a **break-glass** path: rotate secrets and restrict access to env/config.
+
+### IAM email outbox (transactional)
+
+Inserts into **`iam_email_outbox`** (Flyway **V6**); a scheduled relay renders **Thymeleaf** templates from `src/main/resources/templates/email/` and sends via **`JavaMailSender`** (SMTP). Separate from the Kafka **`outbox_event`** used for domain notifications.
+
+- **Enable:** `IAM_EMAIL_ENABLED=true` and set `SPRING_MAIL_HOST`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` (e.g. Gmail [app password](https://support.google.com/accounts/answer/185833)), plus `IAM_EMAIL_FROM`.
+- **Enqueue from code:** inject `EmailOutboxPort` and call `enqueue(new EmailEnqueueCommand(EmailTemplateIds.GENERIC_NOTICE, to, subjectOrNull, variables))`.
+- **Account re-enabled:** when an admin sets `enabled: true` on a previously disabled user, an **`ACCOUNT_ACTIVATED`** message is enqueued (template `templates/email/account-activated.html`).
+- **New templates:** add `IamEmailTemplateId` + `templates/email/...html` (English by default).
+- **Tests:** `app.iam.email.enabled=false` (see `src/test/resources/application.properties`).
 
 ## Pagination (standard for list endpoints)
 
@@ -175,6 +188,12 @@ backend/
   build.gradle
   Dockerfile    # Spring Boot only (compose: build.context ./backend)
 ```
+
+### MFA (TOTP) configuration
+
+- **Key (required for enroll/verify):** `IAM_MFA_ENCRYPTION_KEY` — Base64 encoding of **32 bytes** (AES-256), or `security.mfa.encryption-key-base64` in properties.
+- **Issuer label (authenticator apps):** `IAM_MFA_ISSUER` or `security.mfa.issuer` (defaults to `spring.application.name`).
+- **Challenge JWT lifetime:** `JWT_MFA_CHALLENGE_SECONDS` or `security.jwt.mfa-challenge-expiration-seconds` (default 300s).
 
 ## Related docs
 

@@ -27,7 +27,7 @@ Work landed **out of strict wave order** in places (e.g. **F3** and **IAM2** shi
 | **v1.1** | 1 | **IAM1** | **Done** for this template — email/password identity, lockout, **`GET /api/v1/me`** + SPA **`/me`**; phone/OAuth → **IAM4**. |
 | **v1.2** | 2 | **IAM2** (admin API + admin UI) | **Done** for this template (super-admin IAM + audit read + method security). Optional multi-app scope remains YAGNI. |
 | **v1.3** | 3 | **F3** | **Done** |
-| **v1.4** | 4 | **IAM3** | Not started |
+| **v1.4** | 4 | **IAM3** | **Done** (backend + SPA template scope) — see [IAM3](#iam3-operational-hardening-v14) below. |
 | **v1.5** | 5 | **IAM4** | Not started (forgot password, OTP, **phone**, Google OAuth, …) |
 | **v1.6** | 6 | **IAM5** | Not started |
 | **v1.7** | 7 | **IAM6** | Not started |
@@ -76,12 +76,32 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 
 **IAM2 / v1.2 closure (this template):** Treat **v1.2** as **closed** when the **Done** rows above match your deployment. Rows **Partial** (phone/Google login) or **Gap** (change-password) are **not** part of the core IAM2 slice: they are either deferred to **IAM4** or optional polish. **APP_ADMIN-scoped IAM** is explicitly **YAGNI** here. To formalize closure: run [verification commands](#verification-quick) below, update Postman if needed, and tag or note **v1.2** in the changelog or PR.
 
+### IAM3: Operational hardening (v1.4)
+
+Backend slice for **refresh rotation**, **rate limits**, **MFA TOTP**, **refresh-session listing / revocation**, and **transactional security email** (outbox). Aligned with [auth-platform.md](auth-platform.md) §2.2 **P1–P2** where implemented.
+
+| Deliverable | Status |
+|-------------|--------|
+| Flyway **V5** `iam_refresh_session` — opaque refresh, **family id**, rotation, hashed token at rest | **Done** |
+| **POST** `/api/v1/auth/refresh` — rotation + new cookie; reuse detection / family invalidation | **Done** |
+| **GET** `/api/v1/auth/sessions` — list sessions for current user (marks **current** when refresh cookie sent) | **Done** |
+| **DELETE** `/api/v1/auth/sessions/{sessionId}` — revoke one session | **Done** |
+| **POST** `/api/v1/auth/sessions/revoke-others` — revoke other sessions (current cookie required) | **Done** |
+| **Rate limits** on login + refresh (Caffeine in-process; optional **Redis** + Bucket4j for multi-instance) | **Done** |
+| Flyway **V7** MFA columns; **TOTP** for **SUPER_ADMIN** / **APP_ADMIN**; **`/api/v1/auth/mfa/*`** (verify, enroll begin/confirm) | **Done** |
+| Login returns **`mfaChallengeToken`** when MFA required; JWT access after verify | **Done** |
+| Flyway **V6** `iam_email_outbox` + templates; **`ACCOUNT_ACTIVATED`** when admin sets `enabled: false → true` | **Done** |
+| Integration tests (lockout, refresh rotation, rate limit, MFA flows) | **Done** |
+| **Security notification emails** — new device / password changed / generic “MFA enabled” beyond **ACCOUNT_ACTIVATED** | **Gap** → optional follow-up (design in [auth-platform.md](auth-platform.md) §2.2 **P2**) |
+| **SPA** — MFA enrollment UX, session list / “logout other devices” | **Done** — `/me/security`, login MFA step, profile link; requires backend **MFA encryption key** for enrollment |
+| **Postman / OpenAPI** | **Ongoing** — collection includes auth, refresh, logout, MFA, **sessions** (**1.07–1.09**), **Me** |
+
 ### What to do next (suggested order)
 
 1. **v1.1** is **closed** in docs for this template (tag **`v1.1.0`** or your convention when you bump the baseline — see root `CHANGELOG.md`).
 2. **v1.2 (IAM2) for this repo:** closed with **method security** + **audit log read** + admin UI; multi-app IAM remains an optional fork extension.
 3. **IAM2 polish (optional):** **change-password** if you add the API; keep register/OAuth/phone aligned with **IAM4**.
-4. Then **IAM3** (refresh rotation, rate limits, MFA, …) per [evolution.md](evolution.md).
+4. **IAM3 backend** is **done** in this repo; optional **frontend** polish (MFA enrollment UI, sessions screen) or **IAM4** (recovery / OAuth / phone) per [evolution.md](evolution.md).
 
 ### Progress note (recent delivery)
 
@@ -94,6 +114,7 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 - **F3 (wave 3):** TanStack Query — branches **and admin users/roles** use query keys + cached reads (`staleTime` 5 min, `refetchOnWindowFocus`) with invalidation on mutations.
 - Lazy loading: `admin` and `branches` route-level `loadChildren`.
 - Delivery tuning: DaisyUI `include` subset, `nginx.conf` gzip + long-cache hashed assets + no-store `index.html`, Angular `initial` budget (~`560kB` warning).
+- **v1.4 / IAM3:** refresh session persistence + rotation; rate-limited login/refresh; MFA TOTP + challenge JWT; `/api/v1/auth/sessions`; email outbox + **ACCOUNT_ACTIVATED** on user re-enable; Postman **1.07–1.09**; SPA **`/me/security`** + login MFA step + **`mfaEnabled`** on profile/admin user DTOs.
 
 ---
 

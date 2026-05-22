@@ -3,6 +3,10 @@ package com.jm.spring_web.infrastructure.config;
 import com.jm.spring_web.infrastructure.security.JwtAuthenticationFilter;
 import com.jm.spring_web.infrastructure.security.JwtProperties;
 import com.jm.spring_web.infrastructure.security.LoginLockoutProperties;
+import com.jm.spring_web.infrastructure.security.MfaProperties;
+import com.jm.spring_web.infrastructure.security.ratelimit.AuthRateLimitFilter;
+import com.jm.spring_web.infrastructure.email.IamEmailProperties;
+import com.jm.spring_web.infrastructure.security.ratelimit.AuthRateLimitProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,7 +38,12 @@ import java.util.Map;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, LoginLockoutProperties.class})
+@EnableConfigurationProperties({
+    JwtProperties.class,
+    LoginLockoutProperties.class,
+    AuthRateLimitProperties.class,
+    IamEmailProperties.class
+})
 public class SecurityConfig {
     @Value("${app.security.actuator-public:true}")
     private boolean actuatorPublic;
@@ -42,6 +51,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            AuthRateLimitFilter authRateLimitFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             ObjectMapper objectMapper)
             throws Exception {
@@ -53,7 +63,10 @@ public class SecurityConfig {
                         .accessDeniedHandler(problemAccessDeniedHandler(objectMapper)))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(
-                            "/api/v1/auth/**",
+                            "/api/v1/auth/login",
+                            "/api/v1/auth/refresh",
+                            "/api/v1/auth/logout",
+                            "/api/v1/auth/mfa/verify",
                             "/swagger-ui.html",
                             "/swagger-ui/**",
                             "/v3/api-docs/**",
@@ -72,7 +85,8 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/v1/branches/**").hasAnyRole("SUPER_ADMIN", "APP_ADMIN");
                     auth.anyRequest().authenticated();
                 })
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

@@ -30,6 +30,12 @@ export const routes: Routes = [
         data: { titleKey: 'myProfileTitle' },
         loadComponent: () => import('./features/account/my-profile.component').then((m) => m.MyProfileComponent),
       },
+      {
+        path: 'me/security',
+        data: { titleKey: 'securitySettingsTitle' },
+        loadComponent: () =>
+          import('./features/account/security-settings.component').then((m) => m.SecuritySettingsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

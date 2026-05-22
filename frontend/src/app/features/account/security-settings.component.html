@@ -1,0 +1,142 @@
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center gap-2">
+    <a routerLink="/me" class="btn btn-ghost btn-sm">{{ i18n.t('back') }}</a>
+    <h1 class="text-xl font-semibold">{{ i18n.t('securitySettingsTitle') }}</h1>
+  </div>
+
+  <p class="text-sm text-base-content/80">{{ i18n.t('securitySettingsIntro') }}</p>
+
+  <app-inline-alert [message]="error()" variant="error" [title]="i18n.t('warningTitle')" />
+
+  @if (enrollSuccess()) {
+    <app-inline-alert [message]="i18n.t('mfaEnrollmentSuccess')" variant="info" />
+  }
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body gap-3">
+      <h2 class="card-title text-base">{{ i18n.t('activeSessionsTitle') }}</h2>
+      @if (sessionsQuery.isPending()) {
+        <app-loading-state [active]="true" [label]="i18n.t('loadingSessions')" />
+      } @else if (sessionsQuery.data(); as sessions) {
+        @if (sessions.length === 0) {
+          <p class="text-sm text-base-content/70">{{ i18n.t('sessionsEmpty') }}</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>{{ i18n.t('createdAt') }}</th>
+                  <th>{{ i18n.t('sessionExpiresLabel') }}</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of sessions; track s.id) {
+                  <tr>
+                    <td class="whitespace-nowrap">{{ s.createdAt | date: 'medium' }}</td>
+                    <td class="whitespace-nowrap">{{ s.expiresAt | date: 'medium' }}</td>
+                    <td>
+                      @if (s.current) {
+                        <span class="badge badge-success badge-sm">{{ i18n.t('sessionCurrentBadge') }}</span>
+                      }
+                    </td>
+                    <td class="text-end">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs text-error"
+                        [disabled]="sessionsBusy()"
+                        (click)="revokeSession(s.id)"
+                      >
+                        {{ i18n.t('sessionRevoke') }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="flex flex-wrap gap-2 pt-2">
+          <button type="button" class="btn btn-outline btn-sm" (click)="refreshSessions()">
+            {{ i18n.t('sessionsRefresh') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm btn-error"
+            [disabled]="sessionsBusy() || sessions.length < 2"
+            (click)="revokeOtherSessions()"
+          >
+            {{ i18n.t('sessionsRevokeOthers') }}
+          </button>
+        </div>
+        <p class="text-xs text-base-content/60">{{ i18n.t('sessionsRevokeOthersHint') }}</p>
+      }
+    </div>
+  </div>
+
+  @if (canManageMfa()) {
+    <div class="card bg-base-100 shadow">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-base">{{ i18n.t('mfaSectionTitle') }}</h2>
+        @if (profileQuery.isPending()) {
+          <app-loading-state [active]="true" [label]="i18n.t('loadingProfile')" />
+        } @else if (profileQuery.data(); as p) {
+          <p class="text-sm">
+            <span class="text-base-content/70">{{ i18n.t('mfaEnabledLabel') }}:</span>
+            {{ p.mfaEnabled ? i18n.t('yes') : i18n.t('no') }}
+          </p>
+          @if (!p.mfaEnabled) {
+            @if (!enrollPayload()) {
+              <p class="text-sm text-base-content/80">{{ i18n.t('mfaNotEnrolled') }}</p>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                [disabled]="enrollBusy()"
+                (click)="startMfaEnrollment()"
+              >
+                {{ i18n.t('mfaStartEnrollment') }}
+              </button>
+            } @else {
+              <p class="text-sm text-base-content/80">{{ i18n.t('mfaScanQrHint') }}</p>
+              @if (qrImageUrl(); as src) {
+                <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+                  <img [src]="src" width="180" height="180" alt="" class="rounded-lg border border-base-300" />
+                  <p class="text-xs text-base-content/50 max-w-md">{{ i18n.t('mfaQrExternalServiceNote') }}</p>
+                </div>
+              }
+              <div class="form-control w-full max-w-md">
+                <span class="label-text font-mono text-xs">{{ i18n.t('mfaSecretLabel') }}</span>
+                <code class="rounded bg-base-200 px-2 py-1 text-sm break-all">{{ enrollPayload()!.secretBase32 }}</code>
+              </div>
+              <form
+                class="flex flex-col gap-3 max-w-xs"
+                [formGroup]="mfaEnrollConfirmForm"
+                (ngSubmit)="confirmMfaEnrollment()"
+              >
+                <label class="form-control w-full">
+                  <span class="label-text">{{ i18n.t('mfaConfirmCode') }}</span>
+                  <input
+                    class="input input-bordered font-mono tracking-widest"
+                    type="text"
+                    maxlength="6"
+                    inputmode="numeric"
+                    formControlName="code"
+                  />
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary btn-sm" [disabled]="enrollBusy() || mfaEnrollConfirmForm.invalid">
+                    {{ i18n.t('mfaConfirmEnroll') }}
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="cancelMfaEnrollment()">
+                    {{ i18n.t('cancel') }}
+                  </button>
+                </div>
+              </form>
+            }
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

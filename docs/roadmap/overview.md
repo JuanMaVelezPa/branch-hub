@@ -92,9 +92,9 @@ spring-web/
 
 ## 9) Immediate next step
 
-**v1.0** is complete (**B1, B2, F1, F2, H1**). **F3** is also complete. **v1.1 / IAM1** is **closed** for this template (identity, lockout, **`GET /api/v1/me`**, SPA **`/me`**). **v1.2 / IAM2** (admin API + admin UI) is **closed** in [**status.md**](status.md). Deferred items (phone/OAuth, registration, …) are listed in [**status.md — IAM**](status.md#iam-implementation-and-gaps-this-repo).
+**v1.0** is complete (**B1, B2, F1, F2, H1**). **F3** is also complete. **v1.1 / IAM1** is **closed** for this template (identity, lockout, **`GET /api/v1/me`**, SPA **`/me`**). **v1.2 / IAM2** (admin API + admin UI) is **closed** in [**status.md**](status.md). **v1.4 / IAM3** is **done** in this repo for **backend and SPA template scope**: refresh rotation, sessions API, rate limits, MFA TOTP, email outbox, **`/me/security`**, and **login MFA**. Deferred items (phone/OAuth, registration, full security-email matrix, …) are listed in [**status.md — IAM**](status.md#iam-implementation-and-gaps-this-repo).
 
-**Suggested focus:** **v1.1** is **closed** in this template (identity + lockout + **`/me`**). **v1.2** (admin + audit + method security) is implemented — next template wave is **IAM3+** per [**evolution.md**](evolution.md). Optionally git tag **`v1.1.0`** (see root `CHANGELOG.md`).
+**Suggested focus:** **IAM4 / v1.5** (recovery, OAuth, phone) per [**evolution.md**](evolution.md), or optional polish (e.g. admin users table **MFA** column). Tag **`v1.4.0`** when you want to freeze the template milestone (see root `CHANGELOG.md`).
 
 References:
 

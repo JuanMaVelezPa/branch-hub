@@ -13,42 +13,77 @@
     <app-busy-section
       class="rounded-2xl"
       [busy]="submitting()"
-      [label]="i18n.t('signingIn')"
+      [label]="loginStep() === 'mfa' ? i18n.t('verifyingMfa') : i18n.t('signingIn')"
       spinnerSize="sm"
     >
-      <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submit()">
-        <label class="form-control w-full">
-          <span class="label-text">{{ i18n.t('username') }}</span>
-          <input
-            class="input input-bordered w-full"
-            type="email"
-            formControlName="username"
-            autocomplete="email"
-            data-testid="login-username"
-          />
-        </label>
-        <label class="form-control w-full">
-          <span class="label-text">{{ i18n.t('password') }}</span>
-          <input
-            class="input input-bordered w-full"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-            data-testid="login-password"
-          />
-        </label>
-        <button
-          type="submit"
-          class="btn btn-primary gap-2"
-          [disabled]="form.invalid || submitting()"
-          data-testid="login-submit"
-        >
-          @if (submitting()) {
-            <app-loading-spinner size="xs" />
-          }
-          {{ i18n.t('login') }}
-        </button>
-      </form>
+      @if (loginStep() === 'password') {
+        <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submitPassword()">
+          <label class="form-control w-full">
+            <span class="label-text">{{ i18n.t('username') }}</span>
+            <input
+              class="input input-bordered w-full"
+              type="email"
+              formControlName="username"
+              autocomplete="email"
+              data-testid="login-username"
+            />
+          </label>
+          <label class="form-control w-full">
+            <span class="label-text">{{ i18n.t('password') }}</span>
+            <input
+              class="input input-bordered w-full"
+              type="password"
+              formControlName="password"
+              autocomplete="current-password"
+              data-testid="login-password"
+            />
+          </label>
+          <button
+            type="submit"
+            class="btn btn-primary gap-2"
+            [disabled]="form.invalid || submitting()"
+            data-testid="login-submit"
+          >
+            @if (submitting()) {
+              <app-loading-spinner size="xs" />
+            }
+            {{ i18n.t('login') }}
+          </button>
+        </form>
+      } @else {
+        <div class="flex flex-col gap-3">
+          <h2 class="text-lg font-medium">{{ i18n.t('loginMfaTitle') }}</h2>
+          <p class="text-sm text-base-content/80">{{ i18n.t('loginMfaHint') }}</p>
+          <form class="flex flex-col gap-4" [formGroup]="mfaForm" (ngSubmit)="submitMfa()">
+            <label class="form-control w-full">
+              <span class="label-text">{{ i18n.t('mfaCodeLabel') }}</span>
+              <input
+                class="input input-bordered w-full font-mono tracking-widest"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                formControlName="code"
+                data-testid="login-mfa-code"
+              />
+            </label>
+            <button
+              type="submit"
+              class="btn btn-primary gap-2"
+              [disabled]="mfaForm.invalid || submitting()"
+              data-testid="login-mfa-submit"
+            >
+              @if (submitting()) {
+                <app-loading-spinner size="xs" />
+              }
+              {{ i18n.t('verifyMfa') }}
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="backToPassword()">
+              {{ i18n.t('backToPassword') }}
+            </button>
+          </form>
+        </div>
+      }
     </app-busy-section>
   </div>
   <app-footer />

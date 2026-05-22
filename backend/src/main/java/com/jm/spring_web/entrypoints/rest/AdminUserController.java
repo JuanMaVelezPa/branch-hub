@@ -17,6 +17,8 @@ import com.jm.spring_web.entrypoints.rest.dto.SetUserRolesRequest;
 import com.jm.spring_web.entrypoints.rest.mapper.PageMapper;
 import com.jm.spring_web.entrypoints.rest.pagination.PaginationBinding;
 import com.jm.spring_web.infrastructure.observability.AppMetrics;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = "Admin — users")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -139,14 +143,15 @@ public class AdminUserController {
         return UUID.fromString(authentication.getName());
     }
 
-    private AdminUserResponse toResponse(com.jm.spring_web.application.security.model.AdminUserResult r) {
+       private AdminUserResponse toResponse(com.jm.spring_web.application.security.model.AdminUserResult r) {
         return new AdminUserResponse(
                 r.id(),
                 r.email(),
                 r.enabled(),
                 r.lockedUntil(),
                 r.createdAt(),
-                r.roles()
+                r.roles(),
+                r.mfaEnabled()
         );
     }
 }

@@ -88,6 +88,8 @@ Checklist: [status.md](status.md) (steps 1–5 **Done**).
 **Outcome:** Stronger production posture; fewer abuse windows.  
 **Learn:** Token families, MFA, transactional email in prod.
 
+**This repo:** the **backend** track above (**IAM3**) is **implemented**: Flyway **V5/V6/V7**, opaque refresh rotation, session list/revoke APIs, login/refresh rate limits, TOTP MFA endpoints, and email outbox with **ACCOUNT_ACTIVATED** on re-enable. The **frontend** slice is **implemented** for this template: **`/me/security`** (sessions + admin TOTP enrollment) and **login MFA step** — see [status.md — IAM3](status.md#iam3-operational-hardening-v14).
+
 ---
 
 ## Wave 5 → **v1.5** — Recovery & alternate sign-in

@@ -39,7 +39,7 @@ public class JpaUserDirectoryAdapter implements UserDirectoryPort {
                 .map(r -> r.getName())
                 .sorted()
                 .toList();
-        return new UserAccount(u.getId(), roles);
+        return new UserAccount(u.getId(), u.getEmail(), roles, u.isMfaEnabled());
     }
 }
 

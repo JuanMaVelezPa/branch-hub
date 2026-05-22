@@ -33,7 +33,8 @@ export type UpdateBranchPayload = components['schemas']['UpdateBranchRequest'];
 
 type OpenApiLoginResponse = components['schemas']['LoginResponse'];
 export type LoginResponse = {
-  token: NonNullable<OpenApiLoginResponse['token']>;
+  token?: OpenApiLoginResponse['token'];
+  mfaChallengeToken?: OpenApiLoginResponse['mfaChallengeToken'];
 };
 
 export type LoginRequest = components['schemas']['LoginRequest'];
@@ -46,6 +47,7 @@ export type MeProfile = {
   lockedUntil: OpenApiMe['lockedUntil'] | null | undefined;
   createdAt: NonNullable<OpenApiMe['createdAt']>;
   roles: NonNullable<OpenApiMe['roles']>;
+  mfaEnabled: NonNullable<OpenApiMe['mfaEnabled']>;
 };
 
 type OpenApiAdminUser = components['schemas']['AdminUserResponse'];
@@ -56,6 +58,7 @@ export type AdminUser = {
   lockedUntil: OpenApiAdminUser['lockedUntil'] | null | undefined;
   createdAt: NonNullable<OpenApiAdminUser['createdAt']>;
   roles: NonNullable<OpenApiAdminUser['roles']>;
+  mfaEnabled: NonNullable<OpenApiAdminUser['mfaEnabled']>;
 };
 
 type OpenApiAdminRole = components['schemas']['AdminRoleResponse'];
@@ -76,4 +79,22 @@ export type AuditLogEntry = {
   targetUserId: OpenApiAuditLog['targetUserId'] | null | undefined;
   metadata: OpenApiAuditLog['metadata'] | null | undefined;
   createdAt: NonNullable<OpenApiAuditLog['createdAt']>;
+};
+
+/** Align with `RefreshSessionResponse` (IAM3). */
+export type RefreshSessionRow = {
+  id: string;
+  familyId: string;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
+};
+
+export type MfaEnrollBeginResponse = {
+  otpauthUri: string;
+  secretBase32: string;
+};
+
+export type RevokeOthersResponse = {
+  revokedCount: number;
 };

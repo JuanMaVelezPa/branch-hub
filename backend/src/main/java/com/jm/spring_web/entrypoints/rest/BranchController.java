@@ -34,11 +34,15 @@ import com.jm.spring_web.entrypoints.rest.mapper.PageMapper;
 import com.jm.spring_web.entrypoints.rest.pagination.PaginationBinding;
 import com.jm.spring_web.infrastructure.observability.AppMetrics;
 import io.micrometer.core.instrument.Timer;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 
 @Validated
+@Tag(name = "Branches")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/branches")
 public class BranchController {

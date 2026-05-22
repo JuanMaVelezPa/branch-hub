@@ -167,6 +167,7 @@ Services use `apiUrl(API_BASE_URL, ApiPaths.…)` plus the types above so the HT
 - **F1:** login + paged branch list + create branch; theme + locale; OpenAPI typings + `ApiPaths`; unit tests + smoke E2E.
 - **F2:** branch **detail** (`/branches/:id`), **edit** (`/branches/:id/edit`), **deactivate** (confirm + PATCH); smoke E2E covers the full flow.
 - **IAM1 profile (v1.1):** **`/me`** — current user from `GET /api/v1/me` (shell nav **Profile** / **Perfil**).
+- **IAM3 security (v1.4):** **`/me/security`** — list/revoke refresh sessions; **TOTP enrollment** for `SUPER_ADMIN` / `APP_ADMIN`; login **MFA** step when `mfaChallengeToken` is returned. IAM3 paths use `iam3Path()` in `api-paths.ts` until `openapi:generate` includes them.
 - **H1:** **`refreshInterceptor`** (401 → cookie refresh → one retry); Nginx **CSP** + headers; **`public/theme-init.js`** for FOUC under CSP.
 - Quality gate: `npm test`, `npm run test:e2e:smoke`, and `npm run openapi:generate` (with backend up) when the contract changes.
 

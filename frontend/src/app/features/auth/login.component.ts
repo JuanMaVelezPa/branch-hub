@@ -35,6 +35,9 @@ export class LoginComponent {
   readonly error = signal<string | null>(null);
   readonly submitting = signal(false);
 
+  readonly loginStep = signal<'password' | 'mfa'>('password');
+  readonly mfaChallengeToken = signal<string | null>(null);
+
   readonly sessionNotice = toSignal(
     this.route.queryParamMap.pipe(
       map((p): string | null =>
@@ -49,23 +52,69 @@ export class LoginComponent {
     password: ['', Validators.required],
   });
 
-  submit(): void {
+  readonly mfaForm = this.fb.nonNullable.group({
+    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+  });
+
+  submitPassword(): void {
     if (this.form.invalid) {
       return;
     }
-    this.error.set(null);
-    this.submitting.set(true);
     const { username, password } = this.form.getRawValue();
     if (!isValidEmail(username)) {
       this.error.set(this.i18n.t('invalidEmail'));
       return;
     }
+    this.error.set(null);
+    this.submitting.set(true);
     this.auth
       .login(username, password)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => void this.router.navigateByUrl('/branches'),
+        next: (res) => {
+          if (res.mfaChallengeToken) {
+            this.mfaChallengeToken.set(res.mfaChallengeToken);
+            this.loginStep.set('mfa');
+            this.mfaForm.reset();
+            return;
+          }
+          if (res.token) {
+            void this.router.navigateByUrl('/branches');
+          }
+        },
         error: (err) => this.error.set(problemDetailMessage(err)),
       });
+  }
+
+  submitMfa(): void {
+    if (this.mfaForm.invalid) {
+      return;
+    }
+    const challenge = this.mfaChallengeToken();
+    if (!challenge) {
+      this.error.set(this.i18n.t('signInFailed'));
+      return;
+    }
+    this.error.set(null);
+    this.submitting.set(true);
+    const code = this.mfaForm.getRawValue().code;
+    this.auth
+      .mfaVerify(challenge, code)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (res) => {
+          if (res.token) {
+            void this.router.navigateByUrl('/branches');
+          }
+        },
+        error: (err) => this.error.set(problemDetailMessage(err)),
+      });
+  }
+
+  backToPassword(): void {
+    this.loginStep.set('password');
+    this.mfaChallengeToken.set(null);
+    this.mfaForm.reset();
+    this.error.set(null);
   }
 }

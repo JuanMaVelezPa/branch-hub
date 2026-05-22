@@ -87,6 +87,11 @@ Aligned with [roadmap/backend.md](roadmap/backend.md).
 | **Secrets via env / config** | `JWT_SECRET`, `APP_SUPER_ADMIN_PASSWORD`, etc. — never committed. |
 | **Observability & alerts** | Detect attacks and failures (abuse patterns, dependency outages). |
 
+**IAM hardening in this template (recent):**
+
+- **Transactional email:** enabling a previously disabled user (`enabled: false` → `true`) enqueues **`ACCOUNT_ACTIVATED`** (see `backend/README.md` — IAM email outbox).
+- **MFA (TOTP):** **SUPER_ADMIN** and **APP_ADMIN** may enroll TOTP; login then returns `mfaChallengeToken` until `POST /api/v1/auth/mfa/verify`. Secrets are encrypted at rest (`IAM_MFA_ENCRYPTION_KEY`). Details: [backend/README.md](../backend/README.md).
+
 *Concrete behavior for this repo:* see [backend/README.md](../backend/README.md) (security matrix, auth endpoints).
 
 ---

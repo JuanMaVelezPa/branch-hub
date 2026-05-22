@@ -10,7 +10,8 @@ public record AdminUserResult(
         boolean enabled,
         Instant lockedUntil,
         Instant createdAt,
-        List<String> roles
+        List<String> roles,
+        boolean mfaEnabled
 ) {
 }
 

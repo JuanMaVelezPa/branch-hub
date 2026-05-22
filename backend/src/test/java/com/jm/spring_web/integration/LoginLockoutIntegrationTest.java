@@ -77,7 +77,10 @@ class LoginLockoutIntegrationTest {
                   failed_login_count INT NOT NULL DEFAULT 0,
                   locked_until TIMESTAMPTZ,
                   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                  mfa_enabled BOOLEAN NOT NULL DEFAULT false,
+                  mfa_secret_encrypted VARCHAR(4000),
+                  mfa_pending_secret_encrypted VARCHAR(4000)
                 )
                 """);
         jdbcTemplate.execute("""
@@ -88,7 +91,21 @@ class LoginLockoutIntegrationTest {
                   PRIMARY KEY (user_id, role_id)
                 )
                 """);
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS iam_refresh_session (
+                  id UUID PRIMARY KEY,
+                  user_id UUID NOT NULL REFERENCES iam_user(id) ON DELETE CASCADE,
+                  family_id UUID NOT NULL,
+                  token_hash VARCHAR(64) NOT NULL,
+                  expires_at TIMESTAMPTZ NOT NULL,
+                  revoked_at TIMESTAMPTZ,
+                  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+                """);
+        jdbcTemplate.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS iam_refresh_session_token_hash_uidx ON iam_refresh_session (token_hash)");
 
+        jdbcTemplate.update("DELETE FROM iam_refresh_session");
         jdbcTemplate.update("DELETE FROM iam_user_role");
         jdbcTemplate.update("DELETE FROM iam_user");
         jdbcTemplate.update("DELETE FROM iam_role");
@@ -145,7 +162,7 @@ class LoginLockoutIntegrationTest {
                             .content("""
                                     {"username":"admin","password":"wrong"}
                                     """))
-                    .andExpect(status().isUnprocessableEntity());
+                    .andExpect(status().is(422));
         }
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -153,7 +170,7 @@ class LoginLockoutIntegrationTest {
                         .content("""
                                 {"username":"admin","password":"admin123"}
                                 """))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().is(422));
 
         Integer failed = jdbcTemplate.queryForObject(
                 "SELECT failed_login_count FROM iam_user WHERE LOWER(email) = LOWER(?)",

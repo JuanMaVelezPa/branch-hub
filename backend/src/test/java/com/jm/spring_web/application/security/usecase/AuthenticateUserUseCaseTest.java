@@ -4,11 +4,15 @@ import com.jm.spring_web.application.common.exception.UnprocessableEntityExcepti
 import com.jm.spring_web.application.security.model.AuthenticateCommand;
 import com.jm.spring_web.application.security.model.UserAccount;
 import com.jm.spring_web.application.security.port.LoginAttemptPort;
+import com.jm.spring_web.application.security.model.RefreshRotationOutcome;
+import com.jm.spring_web.application.security.model.RefreshSessionSummary;
+import com.jm.spring_web.application.security.port.RefreshSessionPort;
 import com.jm.spring_web.application.security.port.TokenProviderPort;
 import com.jm.spring_web.application.security.port.UserCredentialsPort;
 import com.jm.spring_web.application.security.port.UserDirectoryPort;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,12 +41,47 @@ class AuthenticateUserUseCaseTest {
                 successes.incrementAndGet();
             }
         };
-        AuthenticateUserUseCase useCase = new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts);
+        RefreshSessionPort refreshSession = new RefreshSessionPort() {
+            @Override
+            public String createSession(UUID userId) {
+                return "opaque-refresh-" + userId;
+            }
+
+            @Override
+            public Optional<RefreshRotationOutcome> rotate(String presentedRawToken) {
+                return Optional.empty();
+            }
+
+            @Override
+            public List<RefreshSessionSummary> listActiveSessions(UUID userId) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void revokeSessionForUser(UUID userId, UUID sessionId) {
+            }
+
+            @Override
+            public int revokeAllActiveSessionsExceptFamily(UUID userId, UUID keepFamilyId) {
+                return 0;
+            }
+
+            @Override
+            public Optional<RefreshSessionSummary> resolveActiveSessionForUser(UUID userId, String rawRefreshToken) {
+                return Optional.empty();
+            }
+
+            @Override
+            public void revokePresentedTokenIfActive(String rawRefreshToken) {
+            }
+        };
+        AuthenticateUserUseCase useCase =
+                new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts, refreshSession);
 
         var result = useCase.execute(new AuthenticateCommand("admin", "admin123"));
 
         assertEquals("token-for-" + ADMIN_ID, result.token());
-        assertEquals("refresh-for-" + ADMIN_ID, result.refreshToken());
+        assertEquals("opaque-refresh-" + ADMIN_ID, result.refreshToken());
         assertEquals(1, successes.get());
     }
 
@@ -62,7 +101,9 @@ class AuthenticateUserUseCaseTest {
             public void onSuccessfulLogin(String email) {
             }
         };
-        AuthenticateUserUseCase useCase = new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts);
+        RefreshSessionPort refreshSession = noopRefreshSession();
+        AuthenticateUserUseCase useCase =
+                new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts, refreshSession);
 
         assertThrows(UnprocessableEntityException.class, () -> useCase.execute(new AuthenticateCommand("admin", "wrong")));
         assertEquals("admin", failedFor.get());
@@ -74,9 +115,48 @@ class AuthenticateUserUseCaseTest {
         TokenProviderPort tokenProvider = testTokenProvider();
         UserDirectoryPort directory = testDirectory();
         LoginAttemptPort loginAttempts = noopLoginAttempts();
-        AuthenticateUserUseCase useCase = new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts);
+        RefreshSessionPort refreshSession = noopRefreshSession();
+        AuthenticateUserUseCase useCase =
+                new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts, refreshSession);
 
         assertThrows(NullPointerException.class, () -> useCase.execute(null));
+    }
+
+    private static RefreshSessionPort noopRefreshSession() {
+        return new RefreshSessionPort() {
+            @Override
+            public String createSession(UUID userId) {
+                return "x";
+            }
+
+            @Override
+            public Optional<RefreshRotationOutcome> rotate(String presentedRawToken) {
+                return Optional.empty();
+            }
+
+            @Override
+            public List<RefreshSessionSummary> listActiveSessions(UUID userId) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void revokeSessionForUser(UUID userId, UUID sessionId) {
+            }
+
+            @Override
+            public int revokeAllActiveSessionsExceptFamily(UUID userId, UUID keepFamilyId) {
+                return 0;
+            }
+
+            @Override
+            public Optional<RefreshSessionSummary> resolveActiveSessionForUser(UUID userId, String rawRefreshToken) {
+                return Optional.empty();
+            }
+
+            @Override
+            public void revokePresentedTokenIfActive(String rawRefreshToken) {
+            }
+        };
     }
 
     private static LoginAttemptPort noopLoginAttempts() {
@@ -91,6 +171,23 @@ class AuthenticateUserUseCaseTest {
         };
     }
 
+    @Test
+    void shouldReturnMfaChallengeWhenAdminHasMfaEnabled() {
+        UserCredentialsPort credentials = (username, password) -> "admin".equals(username) && "admin123".equals(password);
+        TokenProviderPort tokenProvider = testTokenProvider();
+        UserDirectoryPort directory = mfaEnabledAdminDirectory();
+        LoginAttemptPort loginAttempts = noopLoginAttempts();
+        RefreshSessionPort refreshSession = noopRefreshSession();
+        AuthenticateUserUseCase useCase =
+                new AuthenticateUserUseCase(credentials, tokenProvider, directory, loginAttempts, refreshSession);
+
+        var result = useCase.execute(new AuthenticateCommand("admin", "admin123"));
+
+        assertEquals("mfa-for-" + ADMIN_ID, result.mfaChallengeToken());
+        assertEquals(null, result.token());
+        assertEquals(null, result.refreshToken());
+    }
+
     private TokenProviderPort testTokenProvider() {
         return new TokenProviderPort() {
             @Override
@@ -99,18 +196,18 @@ class AuthenticateUserUseCaseTest {
             }
 
             @Override
-            public String issueRefreshToken(String subject, List<String> roles) {
-                return "refresh-for-" + subject;
-            }
-
-            @Override
             public String extractSubjectFromAccessToken(String token) {
                 return "admin";
             }
 
             @Override
-            public String extractSubjectFromRefreshToken(String token) {
-                return "admin";
+            public String issueMfaChallengeToken(String subject) {
+                return "mfa-for-" + subject;
+            }
+
+            @Override
+            public String extractSubjectFromMfaChallengeToken(String token) {
+                return token.replace("mfa-for-", "");
             }
         };
     }
@@ -120,7 +217,7 @@ class AuthenticateUserUseCaseTest {
             @Override
             public Optional<UserAccount> findByEmail(String email) {
                 if ("admin".equals(email)) {
-                    return Optional.of(new UserAccount(ADMIN_ID, List.of("APP_ADMIN")));
+                    return Optional.of(new UserAccount(ADMIN_ID, "admin", List.of("APP_ADMIN"), false));
                 }
                 return Optional.empty();
             }
@@ -128,8 +225,25 @@ class AuthenticateUserUseCaseTest {
             @Override
             public Optional<UserAccount> findById(UUID id) {
                 if (ADMIN_ID.equals(id)) {
-                    return Optional.of(new UserAccount(ADMIN_ID, List.of("APP_ADMIN")));
+                    return Optional.of(new UserAccount(ADMIN_ID, "admin", List.of("APP_ADMIN"), false));
                 }
+                return Optional.empty();
+            }
+        };
+    }
+
+    private UserDirectoryPort mfaEnabledAdminDirectory() {
+        return new UserDirectoryPort() {
+            @Override
+            public Optional<UserAccount> findByEmail(String email) {
+                if ("admin".equals(email)) {
+                    return Optional.of(new UserAccount(ADMIN_ID, "admin", List.of("APP_ADMIN"), true));
+                }
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<UserAccount> findById(UUID id) {
                 return Optional.empty();
             }
         };

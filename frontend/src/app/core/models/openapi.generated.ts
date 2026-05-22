@@ -239,6 +239,7 @@ export interface components {
         };
         LoginResponse: {
             token?: string;
+            mfaChallengeToken?: string;
         };
         LoginRequest: {
             username: string;
@@ -254,6 +255,7 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
             roles?: string[];
+            mfaEnabled?: boolean;
         };
         CreateUserRequest: {
             /** Format: email */
@@ -271,6 +273,7 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
             roles?: string[];
+            mfaEnabled?: boolean;
         };
         SetUserRolesRequest: {
             roles: string[];

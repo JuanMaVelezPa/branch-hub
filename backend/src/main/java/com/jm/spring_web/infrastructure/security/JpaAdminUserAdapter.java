@@ -7,6 +7,7 @@ import com.jm.spring_web.application.common.pagination.PageQuery;
 import com.jm.spring_web.application.common.pagination.PageResult;
 import com.jm.spring_web.application.security.EmailPolicy;
 import com.jm.spring_web.application.security.PasswordPolicy;
+import com.jm.spring_web.application.security.model.AdminSetEnabledOutcome;
 import com.jm.spring_web.application.security.model.AdminUserResult;
 import com.jm.spring_web.application.security.model.CreateUserCommand;
 import com.jm.spring_web.application.security.port.AdminUserPort;
@@ -95,7 +96,7 @@ public class JpaAdminUserAdapter implements AdminUserPort {
 
     @Override
     @Transactional
-    public AdminUserResult setEnabled(UUID userId, boolean enabled) {
+    public AdminSetEnabledOutcome setEnabled(UUID userId, boolean enabled) {
         IamUserJpaEntity u = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         if (!enabled) {
             boolean isSuperAdmin = u.getRoles().stream().anyMatch(r -> "SUPER_ADMIN".equalsIgnoreCase(r.getName()));
@@ -103,9 +104,11 @@ public class JpaAdminUserAdapter implements AdminUserPort {
                 throw new UnprocessableEntityException("You cannot disable a SUPER_ADMIN account");
             }
         }
+        boolean wasEnabled = u.isEnabled();
+        boolean becameActive = !wasEnabled && enabled;
         u.setEnabled(enabled);
         u.setUpdatedAt(Instant.now());
-        return toResult(users.save(u));
+        return new AdminSetEnabledOutcome(toResult(users.save(u)), becameActive);
     }
 
     @Override
@@ -146,7 +149,8 @@ public class JpaAdminUserAdapter implements AdminUserPort {
                 u.isEnabled(),
                 u.getLockedUntil(),
                 u.getCreatedAt(),
-                roleNames
+                roleNames,
+                u.isMfaEnabled()
         );
     }
 }

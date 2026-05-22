@@ -68,7 +68,7 @@ class AdminUserControllerWebMvcTest {
     void shouldListUsers() throws Exception {
         Mockito.when(listUsersUseCase.execute(ArgumentMatchers.any(PageQuery.class)))
                 .thenReturn(PageResult.of(
-                        List.of(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("USER"))),
+                        List.of(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("USER"), false)),
                         1,
                         0,
                         20
@@ -84,7 +84,7 @@ class AdminUserControllerWebMvcTest {
     @WithMockUser(username = "00000000-0000-0000-0000-000000000001", roles = "SUPER_ADMIN")
     void shouldCreateUser() throws Exception {
         Mockito.when(createUserUseCase.execute(Mockito.eq(ACTOR_ID), Mockito.any()))
-                .thenReturn(new AdminUserResult(USER_ID, "new@example.com", true, null, Instant.now(), List.of("USER")));
+                .thenReturn(new AdminUserResult(USER_ID, "new@example.com", true, null, Instant.now(), List.of("USER"), false));
 
         mockMvc.perform(post("/api/v1/admin/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +99,7 @@ class AdminUserControllerWebMvcTest {
     @WithMockUser(username = "00000000-0000-0000-0000-000000000001", roles = "SUPER_ADMIN")
     void shouldGetUserById() throws Exception {
         Mockito.when(getUserUseCase.execute(USER_ID))
-                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("APP_ADMIN")));
+                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("APP_ADMIN"), false));
 
         mockMvc.perform(get("/api/v1/admin/users/" + USER_ID))
                 .andExpect(status().isOk())
@@ -111,7 +111,7 @@ class AdminUserControllerWebMvcTest {
     @WithMockUser(username = "00000000-0000-0000-0000-000000000001", roles = "SUPER_ADMIN")
     void shouldSetEnabled() throws Exception {
         Mockito.when(setUserEnabledUseCase.execute(Mockito.eq(ACTOR_ID), Mockito.eq(USER_ID), Mockito.eq(false)))
-                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", false, null, Instant.now(), List.of("USER")));
+                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", false, null, Instant.now(), List.of("USER"), false));
 
         mockMvc.perform(patch("/api/v1/admin/users/" + USER_ID + "/enabled")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,14 +133,14 @@ class AdminUserControllerWebMvcTest {
                         .content("""
                                 {"enabled":false}
                                 """))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().is(422));
     }
 
     @Test
     @WithMockUser(username = "00000000-0000-0000-0000-000000000001", roles = "SUPER_ADMIN")
     void shouldSetRoles() throws Exception {
         Mockito.when(setUserRolesUseCase.execute(Mockito.eq(ACTOR_ID), Mockito.eq(USER_ID), Mockito.eq(List.of("APP_ADMIN"))))
-                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("APP_ADMIN")));
+                .thenReturn(new AdminUserResult(USER_ID, "u@example.com", true, null, Instant.now(), List.of("APP_ADMIN"), false));
 
         mockMvc.perform(patch("/api/v1/admin/users/" + USER_ID + "/roles")
                         .contentType(MediaType.APPLICATION_JSON)

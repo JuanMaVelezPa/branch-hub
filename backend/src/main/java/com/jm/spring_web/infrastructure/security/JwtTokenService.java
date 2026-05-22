@@ -17,7 +17,7 @@ public class JwtTokenService implements TokenProviderPort {
     private static final String TOKEN_TYPE = "token_type";
     private static final String ROLES = "roles";
     private static final String ACCESS = "access";
-    private static final String REFRESH = "refresh";
+    private static final String MFA_CHALLENGE = "mfa_challenge";
     private final JwtProperties jwtProperties;
     private final SecretKey secretKey;
 
@@ -32,18 +32,18 @@ public class JwtTokenService implements TokenProviderPort {
     }
 
     @Override
-    public String issueRefreshToken(String subject, List<String> roles) {
-        return issueToken(subject, roles, jwtProperties.refreshExpirationSeconds(), REFRESH);
-    }
-
-    @Override
     public String extractSubjectFromAccessToken(String token) {
         return extractSubject(token, ACCESS);
     }
 
     @Override
-    public String extractSubjectFromRefreshToken(String token) {
-        return extractSubject(token, REFRESH);
+    public String issueMfaChallengeToken(String subject) {
+        return issueToken(subject, List.of(), jwtProperties.mfaChallengeExpirationSeconds(), MFA_CHALLENGE);
+    }
+
+    @Override
+    public String extractSubjectFromMfaChallengeToken(String token) {
+        return extractSubject(token, MFA_CHALLENGE);
     }
 
     private String issueToken(String subject, List<String> roles, long expirationSeconds, String tokenType) {

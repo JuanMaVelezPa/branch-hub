@@ -44,6 +44,27 @@ describe('AuthService', () => {
     expect(service.username()).toBe('admin');
   });
 
+  it('leaves token null when MFA challenge is returned', () => {
+    service.login('admin', 'x').subscribe();
+
+    const req = httpMock.expectOne(ApiPaths.authLogin);
+    req.flush({ mfaChallengeToken: 'challenge-jwt' });
+
+    expect(service.token()).toBeNull();
+    expect(service.username()).toBe('admin');
+  });
+
+  it('stores token after MFA verify', () => {
+    service.mfaVerify('challenge', '123456').subscribe();
+
+    const req = httpMock.expectOne(ApiPaths.authMfaVerify);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ mfaChallengeToken: 'challenge', code: '123456' });
+    req.flush({ token: 'after-mfa' });
+
+    expect(service.token()).toBe('after-mfa');
+  });
+
   it('clears token on logout', () => {
     service.token.set('existing-token');
 

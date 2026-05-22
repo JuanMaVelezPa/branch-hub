@@ -47,13 +47,15 @@ class MeControllerWebMvcTest {
                         true,
                         null,
                         Instant.parse("2026-01-01T00:00:00Z"),
-                        List.of("APP_ADMIN")));
+                        List.of("APP_ADMIN"),
+                        false));
 
         mockMvc.perform(get("/api/v1/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(USER_ID.toString()))
                 .andExpect(jsonPath("$.email").value("user@example.com"))
                 .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.mfaEnabled").value(false))
                 .andExpect(jsonPath("$.roles[0]").value("APP_ADMIN"));
     }
 }

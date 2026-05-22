@@ -4,7 +4,14 @@ import { QueryClient } from '@tanstack/angular-query-experimental';
 import { Observable, tap } from 'rxjs';
 import { ApiPaths } from '../api/api-paths';
 import { API_BASE_URL } from '../config/api-base-url.token';
-import type { LoginRequest, LoginResponse, MeProfile } from '../models/api-types';
+import type {
+  LoginRequest,
+  LoginResponse,
+  MeProfile,
+  MfaEnrollBeginResponse,
+  RefreshSessionRow,
+  RevokeOthersResponse,
+} from '../models/api-types';
 import { apiUrl } from '../util/api-url';
 import { tryParseJwtPayload } from '../util/jwt';
 
@@ -21,15 +28,58 @@ export class AuthService {
 
   login(username: string, password: string): Observable<LoginResponse> {
     const body: LoginRequest = { username, password };
+    return this.http.post<LoginResponse>(apiUrl(this.apiBaseUrl, ApiPaths.authLogin), body).pipe(
+      tap((res) => {
+        this.queryClient.removeQueries({ queryKey: ['me'] });
+        if (res.token) {
+          this.token.set(res.token);
+        } else {
+          this.token.set(null);
+        }
+        this.username.set(username);
+      }),
+    );
+  }
+
+  mfaVerify(mfaChallengeToken: string, code: string): Observable<LoginResponse> {
     return this.http
-      .post<LoginResponse>(apiUrl(this.apiBaseUrl, ApiPaths.authLogin), body)
+      .post<LoginResponse>(apiUrl(this.apiBaseUrl, ApiPaths.authMfaVerify), { mfaChallengeToken, code })
       .pipe(
         tap((res) => {
           this.queryClient.removeQueries({ queryKey: ['me'] });
-          this.token.set(res.token);
-          this.username.set(username);
+          if (res.token) {
+            this.token.set(res.token);
+          }
         }),
       );
+  }
+
+  mfaEnrollBegin(): Observable<MfaEnrollBeginResponse> {
+    return this.http.post<MfaEnrollBeginResponse>(
+      apiUrl(this.apiBaseUrl, ApiPaths.authMfaEnrollBegin),
+      {},
+    );
+  }
+
+  mfaEnrollConfirm(code: string): Observable<void> {
+    return this.http.post<void>(apiUrl(this.apiBaseUrl, ApiPaths.authMfaEnrollConfirm), { code });
+  }
+
+  listRefreshSessions(): Observable<RefreshSessionRow[]> {
+    return this.http.get<RefreshSessionRow[]>(apiUrl(this.apiBaseUrl, ApiPaths.authSessions));
+  }
+
+  revokeRefreshSession(sessionId: string): Observable<void> {
+    return this.http.delete<void>(
+      apiUrl(this.apiBaseUrl, `${ApiPaths.authSessions}/${encodeURIComponent(sessionId)}`),
+    );
+  }
+
+  revokeOtherRefreshSessions(): Observable<RevokeOthersResponse> {
+    return this.http.post<RevokeOthersResponse>(
+      apiUrl(this.apiBaseUrl, `${ApiPaths.authSessions}/revoke-others`),
+      {},
+    );
   }
 
   logout(): Observable<unknown> {

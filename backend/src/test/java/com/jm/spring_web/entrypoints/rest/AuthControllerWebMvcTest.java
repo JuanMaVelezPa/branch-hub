@@ -1,6 +1,7 @@
 package com.jm.spring_web.entrypoints.rest;
 
 import com.jm.spring_web.application.security.model.AuthResult;
+import com.jm.spring_web.application.security.port.RefreshSessionPort;
 import com.jm.spring_web.application.security.usecase.AuthenticateUserUseCase;
 import com.jm.spring_web.application.security.usecase.RefreshTokenUseCase;
 import com.jm.spring_web.application.common.exception.UnauthorizedException;
@@ -34,10 +35,13 @@ class AuthControllerWebMvcTest {
     @MockitoBean
     private RefreshTokenUseCase refreshTokenUseCase;
 
+    @MockitoBean
+    private RefreshSessionPort refreshSessionPort;
+
     @Test
     void shouldLoginSuccessfullyWithValidPayload() throws Exception {
         Mockito.when(authenticateUserUseCase.execute(Mockito.any()))
-                .thenReturn(new AuthResult("jwt-token", "refresh-token"));
+                .thenReturn(new AuthResult("jwt-token", "refresh-token", null));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,6 +55,24 @@ class AuthControllerWebMvcTest {
                 .andExpect(jsonPath("$.token").value("jwt-token"))
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists(HttpHeaders.SET_COOKIE));
+    }
+
+    @Test
+    void shouldReturnMfaChallengeWithoutRefreshCookieWhenSecondFactorRequired() throws Exception {
+        Mockito.when(authenticateUserUseCase.execute(Mockito.any()))
+                .thenReturn(new AuthResult(null, null, "mfa-jwt"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username":"admin",
+                                  "password":"admin123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mfaChallengeToken").value("mfa-jwt"))
+                .andExpect(jsonPath("$.token").doesNotExist());
     }
 
     @Test
@@ -92,7 +114,7 @@ class AuthControllerWebMvcTest {
     @Test
     void shouldRefreshAccessTokenWithValidRefreshCookie() throws Exception {
         Mockito.when(refreshTokenUseCase.execute(Mockito.any()))
-                .thenReturn(new AuthResult("new-access-token", "new-refresh-token"));
+                .thenReturn(new AuthResult("new-access-token", "new-refresh-token", null));
 
         mockMvc.perform(post("/api/v1/auth/refresh")
                         .cookie(new jakarta.servlet.http.Cookie("REFRESH_TOKEN", "old-refresh-token")))
@@ -118,5 +140,14 @@ class AuthControllerWebMvcTest {
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("REFRESH_TOKEN")))
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
         verify(refreshTokenUseCase, never()).execute(Mockito.any());
+        verify(refreshSessionPort).revokePresentedTokenIfActive(null);
+    }
+
+    @Test
+    void shouldRevokeServerSessionOnLogoutWhenCookiePresent() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .cookie(new jakarta.servlet.http.Cookie("REFRESH_TOKEN", "rt-secret")))
+                .andExpect(status().isNoContent());
+        verify(refreshSessionPort).revokePresentedTokenIfActive("rt-secret");
     }
 }

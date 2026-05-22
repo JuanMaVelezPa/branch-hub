@@ -3,6 +3,8 @@ package com.jm.spring_web.entrypoints.rest;
 import com.jm.spring_web.entrypoints.rest.dto.AdminRoleResponse;
 import com.jm.spring_web.infrastructure.observability.AppMetrics;
 import com.jm.spring_web.infrastructure.persistence.iam.IamRoleRepository;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Comparator;
 import java.util.List;
 
+@Tag(name = "Admin — roles")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/admin/roles")
 @PreAuthorize("hasRole('SUPER_ADMIN')")

@@ -3,6 +3,8 @@ package com.jm.spring_web.entrypoints.rest;
 import com.jm.spring_web.application.security.model.AdminUserResult;
 import com.jm.spring_web.application.security.usecase.AdminGetUserUseCase;
 import com.jm.spring_web.entrypoints.rest.dto.MeResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = "Profile")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1")
 public class MeController {
@@ -29,6 +33,7 @@ public class MeController {
                 user.enabled(),
                 user.lockedUntil(),
                 user.createdAt(),
-                user.roles());
+                user.roles(),
+                user.mfaEnabled());
     }
 }

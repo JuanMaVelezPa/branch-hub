@@ -32,6 +32,15 @@
             <dt class="text-base-content/70">{{ i18n.t('createdAt') }}</dt>
             <dd>{{ p.createdAt | date: 'medium' }}</dd>
           </div>
+          <div class="sm:col-span-2">
+            <dt class="text-base-content/70">{{ i18n.t('mfaEnabledLabel') }}</dt>
+            <dd class="font-medium">{{ p.mfaEnabled ? i18n.t('yes') : i18n.t('no') }}</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <a routerLink="/me/security" class="link link-primary text-sm font-medium">{{
+              i18n.t('securityNavLink')
+            }}</a>
+          </div>
         </dl>
       </div>
     </div>

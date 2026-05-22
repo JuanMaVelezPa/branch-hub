@@ -2,6 +2,7 @@ package com.jm.spring_web.application.security.port;
 
 import com.jm.spring_web.application.common.pagination.PageQuery;
 import com.jm.spring_web.application.common.pagination.PageResult;
+import com.jm.spring_web.application.security.model.AdminSetEnabledOutcome;
 import com.jm.spring_web.application.security.model.AdminUserResult;
 import com.jm.spring_web.application.security.model.CreateUserCommand;
 
@@ -15,7 +16,7 @@ public interface AdminUserPort {
 
     PageResult<AdminUserResult> list(PageQuery query);
 
-    AdminUserResult setEnabled(UUID userId, boolean enabled);
+    AdminSetEnabledOutcome setEnabled(UUID userId, boolean enabled);
 
     AdminUserResult setRoles(UUID userId, java.util.List<String> roles);
 }
