@@ -1,6 +1,6 @@
-# Branches UI (Angular)
+# Branch Hub — Web (Angular)
 
-Angular SPA for the portfolio monorepo: **login**, **paged branch list**, **branch detail**, **create / edit**, and **deactivate**. It targets the backend contract under `/api/v1` and surfaces **Problem Details** messages when the API returns them.
+Angular SPA for Branch Hub (npm package `branch-hub-web`): **login**, **paged branch list**, **branch detail**, **create / edit**, and **deactivate**. It targets the backend contract under `/api/v1` and surfaces **Problem Details** messages when the API returns them.
 
 ## Stack
 
@@ -16,7 +16,7 @@ Angular SPA for the portfolio monorepo: **login**, **paged branch list**, **bran
 |-------|---------|
 | `.postcssrc.json` | Registers `@tailwindcss/postcss` exactly as in the Tailwind + Angular docs. |
 | `src/styles.css` | `@import "tailwindcss" source(".")` limits scanning to `src/` (paths are relative to the stylesheet). |
-| `@plugin "daisyui" { themes: … }` | Enables **light** (default) and **dark** (`prefers-color-scheme: dark`). Matches toggling `data-theme` on `<html>` in `index.html` and `app-shell`. |
+| `@plugin "daisyui" { themes: … }` | Enables **light** (default) and **dark** (`prefers-color-scheme: dark`). Matches toggling `data-theme` on `<html>` in `public/theme-init.js` and `app-shell`. |
 | `angular.json` → `styles` | Includes `src/styles.css` so the CLI runs PostCSS on the global stylesheet. |
 
 Production build turns off `inlineCritical` for styles so the main stylesheet is not deferred via the `media="print"` trick (avoids unstyled first paint in some browsers).
@@ -56,7 +56,7 @@ npm ci
 npm start
 ```
 
-Open `http://localhost:4200/`. Default credentials (if you copied [`.env.example`](../.env.example) to `.env` at repo root): **username** `admin@example.com`, **password** `Admin_ChangeMe_2026!`. If you changed `APP_SUPER_ADMIN_EMAIL` / `APP_SUPER_ADMIN_PASSWORD`, use those values instead ([root README](../README.md#ui-login-default-values)).
+Open `http://localhost:4200/`. Default credentials (if you copied [`.env.example`](../.env.example) to `.env` at repo root): **username** `admin@example.com`, **password** `Admin_ChangeMe_2026!`. If you changed `APP_SUPER_ADMIN_EMAIL` / `APP_SUPER_ADMIN_PASSWORD`, use those values instead ([getting started](../docs/getting-started.md#default-login)).
 
 ## Build
 
@@ -95,8 +95,9 @@ npm test
 # install browsers once
 npx playwright install
 
-# run the critical-path smoke
+# run the critical-path smoke and the admin smoke
 npm run test:e2e:smoke
+npm run test:e2e:admin-smoke
 ```
 
 Defaults:
@@ -104,12 +105,21 @@ Defaults:
 - `E2E_USER=admin@example.com`
 - `E2E_PASSWORD=Admin_ChangeMe_2026!`
 
-The smoke verifies: login -> branches list -> create branch -> back to list with created code visible.
+The smoke verifies: login → branches list → create branch → detail → edit → deactivate. The admin smoke creates a user from the admin area.
+
+Playwright does not support every Linux distribution (for example Ubuntu 26.04). There, run the suites in the official image that matches the installed version, against the Compose stack:
+
+```bash
+docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD":/work -w /work -e E2E_BASE_URL=http://localhost:8080 -e E2E_PASSWORD \
+  mcr.microsoft.com/playwright:v1.59.1-noble \
+  sh -c "npm run test:e2e:smoke && npm run test:e2e:admin-smoke"
+```
 
 ## i18n (EN/ES)
 
 - Runtime i18n is implemented with a lightweight **`I18nService`** (`core/i18n`), **not** `@ngx-translate/core` and **not** Angular compile-time `$localize` / XLF extraction.
-- Locale is persisted via `UserPreferencesService` (`spring-web.pref.v1.locale`), and can be switched from login and shell headers.
+- Locale is persisted via `UserPreferencesService` (`branch-hub.pref.v1.locale`), and can be switched from login and shell headers.
 - Supported locales: `en`, `es`.
 
 **Why no ngx-translate?** For this portfolio scope, a small dictionary keeps dependencies low and the contract easy to explain in interviews. See [docs/security.md §2](../docs/security.md#2-internationalization--do-we-use-angular-translate--ngx-translate) for trade-offs.
@@ -121,9 +131,9 @@ Extra dictionary keys used by the shell: e.g. **`browserTabBrand`** (suffix for 
 | Topic | Implementation |
 |-------|----------------|
 | **Favicon** | `public/favicon.svg` — linked from `src/index.html` (SVG only; avoids browsers picking a stale default `.ico`). |
-| **Tab title** | `app.ts`: on each `NavigationEnd`, reads the leaf route’s `data['titleKey']` and sets `title` to `{translated title} · {browserTabBrand}`; reacts to locale changes. |
+| **Tab title** | `index.html` starts with **Branch Hub**. `app.ts`: on each `NavigationEnd`, reads the leaf route’s `data['titleKey']` and sets `title` to `{translated title} · {browserTabBrand}` ("Branch Hub"); reacts to locale changes. |
 | **Account menu** | `app-settings-dropdown`: in the shell, `variant="account"` shows **user icon + camelCase username** (`displayUsername` pipe) and bundles **language**, **theme**, and **logout** in one dropdown. Login keeps the default **`variant="gear"`** (icon only). |
-| **Footer** | `shared/footer` — portfolio line + **`footerAuthor`** + contact links. |
+| **Footer** | `shared/footer` — project name (**`footerPortfolio`**) + **`footerAuthor`** + links to jotaeme.dev, GitHub and LinkedIn. |
 
 ## Reusable loading (shared UI)
 
@@ -185,7 +195,9 @@ src/app/
 
 ## Documentation
 
-- [Repository hub](../README.md)
+- [Project README (root)](../README.md)
+- [Getting started](../docs/getting-started.md)
+- [Architecture](../docs/architecture.md)
 - [Roadmap & Postman](../docs/README.md)
 
 ## Contract notes
@@ -194,4 +206,4 @@ src/app/
 - **List UI:** default `sort=code,asc`; `list()` cancels the in-flight request (`switchMap` + `takeUntilDestroyed`); hide `app-page-nav` when `totalElements === 0`; sortable headers: `app-sortable-th` + `shared/util/table-sort.ts`.
 - Create: `POST /api/v1/branches` (`CreateBranchRequest`).
 - Detail / update / deactivate: `GET|PUT /api/v1/branches/{id}`, `PATCH .../deactivate`.
-- Login / logout / refresh: `POST /api/v1/auth/login|logout|refresh` — JWT en memoria; refresh vía cookie HttpOnly.
+- Login / logout / refresh: `POST /api/v1/auth/login|logout|refresh` — JWT kept in memory; refresh through the HttpOnly cookie.

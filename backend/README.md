@@ -1,6 +1,6 @@
-# Backend — Spring Web API
+# Backend — Branch Hub API
 
-Spring Boot **4** service (Java **25**, Gradle). Clean Architecture: `domain` → `application` → `infrastructure` → `entrypoints`.
+Spring Boot **4** service (Java **25**, Gradle) for Branch Hub. Clean Architecture under `dev.jotaeme.branchhub`: `domain` ← `application` ← `infrastructure` / `entrypoints` (see [architecture](../docs/architecture.md)).
 
 **Monorepo:** run Docker Compose and Git commands from the **repository root** unless noted. Gradle output lives in `backend/build/` (standard for this module).
 
@@ -19,6 +19,8 @@ Spring Boot **4** service (Java **25**, Gradle). Clean Architecture: `domain` �
 ## Database migrations (Flyway)
 
 Schema changes live **in this module** next to the code that uses them — same repo, same review, same CI. Configuration: `spring.flyway.locations=classpath:db/migration` in `application.properties`.
+
+> **Known issue:** Flyway does not run yet. Spring Boot 4 needs `spring-boot-starter-flyway`, and `build.gradle` only declares `flyway-core`. In Docker Compose the `docker` profile creates the schema with Hibernate (`ddl-auto=update`), and the integration tests create their tables with SQL. The scripts below are still the intended source of truth; the fix is planned as the next spec.
 
 | Location | Role |
 |----------|------|
@@ -48,7 +50,7 @@ Schema changes live **in this module** next to the code that uses them — same 
 
 ### Tests and local dev
 
-- Tests that need a real schema use the same Flyway-managed schema (e.g. Testcontainers) so migrations stay the **single source of truth**.
+- Target: tests that need a real schema use the same Flyway-managed schema (e.g. Testcontainers) so migrations stay the **single source of truth**. Today the integration tests create their tables with SQL (see the known issue above).
 
 ## Run with Docker (full stack)
 
@@ -61,17 +63,17 @@ cp monitoring/alertmanager/discord-webhook-url.example monitoring/alertmanager/d
 docker compose up -d --build
 ```
 
-Configure `JWT_SECRET`, `APP_SUPER_ADMIN_PASSWORD`, and (optional) Discord webhook per root `.env.example`.
+Configure `JWT_SECRET`, `APP_SUPER_ADMIN_PASSWORD`, and (optional) Discord webhook per root `.env.example`. Full guide, including the database URLs and troubleshooting: [docs/getting-started.md](../docs/getting-started.md).
 
-**URLs (Docker Compose on the host):**
+**URLs (Docker Compose on the host, default ports; change them with `WEB_PORT` / `API_PORT` in `.env`):**
 
 | Service | Host port | Notes |
 |--------|-----------|--------|
 | **`web`** (Nginx + Angular) | **8080** | Browser entry. Proxies `/api`, `/actuator`, `/swagger-ui`, `/v3/*` to `app` so the UI keeps a single origin. |
 | **`app`** (Spring Boot) | **8081** | Direct API: Postman, `curl`, Swagger UI at http://localhost:8081/swagger-ui.html, Actuator, etc. |
-| PostgreSQL | **5433** | Exposed for local tooling (psql, migrations debugging). Inside Compose network the hostname is `postgres:5432`. |
-| Grafana | 3000 | |
-| Prometheus | 9090 | Scrapes **`app:8080`** on the Compose network (not via the host port). |
+| PostgreSQL | **5433** | Database `branchhub`, user `branchhub`. Exposed for local tooling (psql, migrations debugging). Inside the Compose network the hostname is `postgres:5432`. |
+| Grafana | 3000 | Dashboard `branch-hub-observability` (folder **Branch Hub**). |
+| Prometheus | 9090 | Job **`branch-hub-api`** scrapes **`app:8080`** on the Compose network (not via the host port). |
 
 Separate images: **`app`** is built from `backend/` (Spring Boot only); **`web`** from `frontend/` (Angular production build + `nginx` image with `nginx.conf`).
 
@@ -116,7 +118,7 @@ Spring does **not** serve the static UI; the **`web`** container (Nginx) does on
 
 ### IAM bootstrap (local)
 
-On startup, the backend can seed a first **SUPER_ADMIN** account (if missing) so a fresh fork is usable without manual SQL.
+On startup, the backend can seed a first **SUPER_ADMIN** account (if missing) so a fresh install is usable without manual SQL. The account is only created when no user with `APP_SUPER_ADMIN_EMAIL` exists.
 
 - **Enable/disable:** `APP_IAM_BOOTSTRAP_ENABLED` (default `true`)
 - **Seed email:** `APP_SUPER_ADMIN_EMAIL` (default `admin@example.com`)
@@ -146,11 +148,11 @@ Handled errors use `application/problem+json`-style bodies (`type`, `title`, `st
 
 ## Metrics (examples)
 
-`outbox_lag`, `failed_notifications`, `app_auth_login_total`, `app_branch_command_total`, `app_iam_admin_action_total`, `app_use_case_duration`, `app_outbox_publish_total`, `app_notification_consumer_total`.
+`outbox_lag`, `failed_notifications_total`, `app_auth_login_total`, `app_branch_command_total`, `app_iam_admin_action_total`, `app_use_case_duration`, `app_outbox_publish_total`, `app_notification_consumer_total`.
 
 ## Alerting
 
-Prometheus rules → Alertmanager → Discord (see `monitoring/`). Alerts include app down, Kafka/Postgres, outbox lag, consumer DLT, etc.
+Prometheus rules (group `branch-hub-alerts`) → Alertmanager → Discord (see `monitoring/`). Alerts include API down (`BranchHubApiDown`), restart loops (`BranchHubApiFlapping`), Kafka/Postgres, outbox lag, consumer DLT, etc.
 
 ## Tests
 
@@ -170,7 +172,7 @@ RUN_ALERTMANAGER_TEST=true ./gradlew test --tests AlertmanagerDiscordIntegration
 
 ```text
 backend/
-  src/main/java/com/jm/spring_web/
+  src/main/java/dev/jotaeme/branchhub/
   src/main/resources/db/migration/   # Flyway SQL (see "Database migrations")
   build.gradle
   Dockerfile    # Spring Boot only (compose: build.context ./backend)
@@ -178,6 +180,8 @@ backend/
 
 ## Related docs
 
-- [Repository hub (root)](../README.md)
+- [Project README (root)](../README.md)
+- [Getting started](../docs/getting-started.md)
+- [Architecture](../docs/architecture.md)
 - [Documentation index — roadmap & Postman](../docs/README.md)
 - [Frontend](../frontend/README.md)

@@ -1,6 +1,6 @@
-/* Match key in preference-keys.ts (spring-web.pref.v1.theme) — set data-theme before Angular boots. */
+/* Match key in src/app/core/preferences/preference-keys.ts (branch-hub.pref.v1.theme) — set data-theme before Angular boots. */
 (function () {
-  var k = 'spring-web.pref.v1.theme';
+  var k = 'branch-hub.pref.v1.theme';
   try {
     var v = localStorage.getItem(k);
     if (v === 'light' || v === 'dark') {

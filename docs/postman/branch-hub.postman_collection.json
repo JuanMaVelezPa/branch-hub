@@ -1,0 +1,678 @@
+{
+  "info": {
+    "_postman_id": "fbe28f84-175e-4402-a934-3d94f443f6e1",
+    "name": "branch-hub API",
+    "description": "End-to-end collection for auth, branches, and observability endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('baseUrl')) {",
+          "  pm.collectionVariables.set('baseUrl', 'http://localhost:8081');",
+          "}",
+          "if (!pm.collectionVariables.get('superAdminEmail')) {",
+          "  pm.collectionVariables.set('superAdminEmail', 'admin@example.com');",
+          "}",
+          "if (!pm.collectionVariables.get('superAdminPassword')) {",
+          "  pm.collectionVariables.set('superAdminPassword', 'Admin_ChangeMe_2026!');",
+          "}",
+          "if (!pm.collectionVariables.get('branchCode')) {",
+          "  pm.collectionVariables.set('branchCode', 'BR100');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1.05 Me - Current profile (authenticated)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Has email and roles', function () {",
+              "  pm.expect(json.email).to.exist;",
+              "  pm.expect(json.roles).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1.1 Admin - Roles (SUPER_ADMIN)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "roles"
+          ]
+        }
+      }
+    },
+    {
+      "name": "1.2 Admin - Users - List (SUPER_ADMIN)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?page=0&size=10&sort=email,asc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "20"
+            },
+            {
+              "key": "sort",
+              "value": "email,asc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "1.3 Admin - IAM audit log (SUPER_ADMIN)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/audit-logs?page=0&size=10&sort=createdAt,desc",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "audit-logs"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            },
+            {
+              "key": "sort",
+              "value": "createdAt,desc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Branches - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Correlation-Id",
+            "value": "postman-{{branchCode}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{branchCode}}\",\n  \"name\": \"HQ\",\n  \"city\": \"Madrid\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/branches",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "branches"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('branchId', json.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Branches - Get By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/branches/{{branchId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "branches",
+            "{{branchId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Branches - List (paged)",
+      "request": {
+        "description": "Returns a reusable paged envelope: content, totalElements, page, size, totalPages.",
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/branches?page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "branches"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"paged response contract\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property(\"content\");",
+              "    pm.expect(body).to.have.property(\"totalElements\");",
+              "    pm.expect(body).to.have.property(\"page\");",
+              "    pm.expect(body).to.have.property(\"size\");",
+              "    pm.expect(body).to.have.property(\"totalPages\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Branches - Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"HQ Updated\",\n  \"city\": \"Bogota\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/branches/{{branchId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "branches",
+            "{{branchId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Branches - Deactivate",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/branches/{{branchId}}/deactivate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "branches",
+            "{{branchId}}",
+            "deactivate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Actuator - Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Actuator - Metrics Index",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics"
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Actuator - outbox_lag",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/outbox_lag",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "outbox_lag"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10. Actuator - failed_notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/failed_notifications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "failed_notifications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "11. Actuator - app_auth_login_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_auth_login_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_auth_login_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "12. Actuator - app_branch_command_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_branch_command_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_branch_command_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "13. Actuator - app_use_case_duration",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_use_case_duration",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_use_case_duration"
+          ]
+        }
+      }
+    },
+    {
+      "name": "14. Actuator - app_outbox_publish_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_outbox_publish_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_outbox_publish_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "15. Actuator - app_notification_consumer_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_notification_consumer_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_notification_consumer_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "15.1 Actuator - app_iam_admin_action_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_iam_admin_action_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_iam_admin_action_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16. Actuator - prometheus",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/prometheus",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "prometheus"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "superAdminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "superAdminPassword",
+      "value": "Admin_ChangeMe_2026!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "branchCode",
+      "value": "BR100"
+    },
+    {
+      "key": "branchId",
+      "value": ""
+    }
+  ]
+}

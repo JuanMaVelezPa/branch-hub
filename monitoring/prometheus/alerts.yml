@@ -1,23 +1,23 @@
 groups:
-  - name: spring-web-alerts
+  - name: branch-hub-alerts
     rules:
-      - alert: SpringWebAppDown
-        expr: up{job="spring-web-app"} == 0
+      - alert: BranchHubApiDown
+        expr: up{job="branch-hub-api"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Spring Web app is down"
-          description: "Prometheus cannot scrape spring-web app for at least 1 minute."
+          summary: "Branch Hub API is down"
+          description: "Prometheus cannot scrape the branch-hub API for at least 1 minute."
 
-      - alert: SpringWebAppFlapping
-        expr: changes(up{job="spring-web-app"}[10m]) > 4
+      - alert: BranchHubApiFlapping
+        expr: changes(up{job="branch-hub-api"}[10m]) > 4
         for: 1m
         labels:
           severity: warning
         annotations:
-          summary: "Spring Web app is restarting frequently"
-          description: "The app availability changed more than 4 times in 10 minutes (possible restart loop)."
+          summary: "Branch Hub API is restarting frequently"
+          description: "The API availability changed more than 4 times in 10 minutes (possible restart loop)."
 
       - alert: KafkaDown
         expr: probe_success{job="blackbox-tcp", instance="kafka:9092"} == 0
@@ -56,13 +56,13 @@ groups:
           description: "outbox_lag is above 120 seconds for at least 2 minutes."
 
       - alert: FailedNotificationsIncreasing
-        expr: increase(failed_notifications[10m]) > 0
+        expr: increase(failed_notifications_total[10m]) > 0
         for: 1m
         labels:
           severity: warning
         annotations:
           summary: "Failed notifications detected"
-          description: "failed_notifications increased during the last 10 minutes."
+          description: "failed_notifications_total increased during the last 10 minutes."
 
       - alert: BranchCommandFailures
         expr: increase(app_branch_command_total{outcome="failure"}[10m]) > 3

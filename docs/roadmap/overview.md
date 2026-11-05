@@ -24,7 +24,7 @@ All implementation, code comments, commit messages, and documentation should be 
 | **F2** | Frontend **second slice** — branch detail + update + deactivate in the UI |
 | **H1** | Frontend **hardening** — refresh interceptor, Nginx CSP / security headers |
 
-**Future work:** do **not** tackle everything at once. Use [**evolution.md**](roadmap/evolution.md) — **waves**, **v1.1–v1.7**, backend + frontend slices per wave — then update [status.md](status.md) when a wave closes.
+**Future work:** do **not** tackle everything at once. Use [**evolution.md**](evolution.md) — **waves**, **v1.1–v1.7**, backend + frontend slices per wave — then update [status.md](status.md) when a wave closes.
 
 This sequencing reduces risk and prevents UI work from masking API design issues.
 
@@ -33,7 +33,7 @@ This sequencing reduces risk and prevents UI work from masking API design issues
 We use a **single repository** for backend and frontend. Boundaries stay strict: no cross-imports between Java and Angular; the contract is the HTTP API (OpenAPI).
 
 ```text
-spring-web/
+branch-hub/
   backend/                # Spring Boot (Gradle)
     src/
   frontend/               # Angular app
@@ -42,7 +42,7 @@ spring-web/
     postman/              # Postman collection (API contract)
   monitoring/
   docker-compose.yml
-  README.md               # Hub: links to backend/, frontend/, docs/
+  README.md               # Project overview: links to backend/, frontend/, docs/
 ```
 
 **Why monorepo:** one clone, aligned API versions, simpler CI (backend tests + frontend tests in one pipeline), ideal for a learning portfolio.
@@ -92,14 +92,14 @@ spring-web/
 
 ## 9) Immediate next step
 
-**v1.0** is complete (**B1, B2, F1, F2, H1**). **F3** is also complete. **v1.1 / IAM1** is **closed** for this template (identity, lockout, **`GET /api/v1/me`**, SPA **`/me`**). **v1.2 / IAM2** (admin API + admin UI) is **closed** in [**status.md**](status.md). Deferred items (phone/OAuth, registration, …) are listed in [**status.md — IAM**](status.md#iam-implementation-and-gaps-this-repo).
+**v1.0** is complete (**B1, B2, F1, F2, H1**). **F3** is also complete. **v1.1 / IAM1** is **closed** (identity, lockout, **`GET /api/v1/me`**, SPA **`/me`**). **v1.2 / IAM2** (admin API + admin UI) is **closed** in [**status.md**](status.md). Deferred items (phone/OAuth, registration, …) are listed in [**status.md — IAM**](status.md#iam-implementation-and-gaps-this-repo).
 
-**Suggested focus:** **v1.1** is **closed** in this template (identity + lockout + **`/me`**). **v1.2** (admin + audit + method security) is implemented — next template wave is **IAM3+** per [**evolution.md**](evolution.md). Optionally git tag **`v1.1.0`** (see root `CHANGELOG.md`).
+**Suggested focus:** **v1.1** is **closed** (identity + lockout + **`/me`**). **v1.2** (admin + audit + method security) is implemented — the next wave is **IAM3+** per [**evolution.md**](evolution.md). Release tags are listed in [CHANGELOG.md](../../CHANGELOG.md).
 
 References:
 
 1. [**status.md**](status.md) — **checklist**, IAM done vs gaps, verification commands.
-2. [**evolution.md**](evolution.md) — **waves**, **v1.x** template versions, BE+FE ordering.
+2. [**evolution.md**](evolution.md) — **waves**, **v1.x** release numbers, BE+FE ordering.
 3. [auth-platform.md](auth-platform.md) — IAM design (**§1.1**, **§2.2**, **§2.3**).
 4. [frontend.md](frontend.md) — **F3** client cache (closed).
 5. **Stricter CSP** — [security.md](../security.md) (cross-cutting).
@@ -126,4 +126,4 @@ git push -u origin feat/backend-phase1-problem-details
 
 ---
 
-**Next:** [Evolution (v1.x waves)](roadmap/evolution.md) · [Backend phases](backend.md) · [Frontend phase](frontend.md) · [Status](roadmap/status.md)
+**Next:** [Evolution (v1.x waves)](evolution.md) · [Backend phases](backend.md) · [Frontend phase](frontend.md) · [Status](status.md)

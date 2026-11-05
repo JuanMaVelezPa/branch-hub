@@ -15,6 +15,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/build/libs/spring-web-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/build/libs/branch-hub-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -7,7 +7,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
   imports: [RouterLink, RouterLinkActive],
   template: `
     <nav
-      class="tabs tabs-boxed mb-4 w-fit max-w-full flex-wrap bg-base-200/80 p-1"
+      class="tabs tabs-box mb-4 w-fit max-w-full flex-wrap bg-base-200/80 p-1"
       [attr.aria-label]="i18n.t('admin')"
     >
       <a routerLink="/admin/users" routerLinkActive="tab-active" class="tab tab-sm">{{

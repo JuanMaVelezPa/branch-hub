@@ -1,10 +1,10 @@
 /**
  * Single namespace for persisted UI preferences. Bump version if stored shape changes.
- * Keep the theme key in sync with the inline script in `src/index.html` (FOUC prevention).
+ * Keep the theme key in sync with `public/theme-init.js` (FOUC prevention).
  */
 export const PREFERENCE_STORAGE_VERSION = 'v1';
 
-export const PREFERENCE_STORAGE_PREFIX = `spring-web.pref.${PREFERENCE_STORAGE_VERSION}`;
+export const PREFERENCE_STORAGE_PREFIX = `branch-hub.pref.${PREFERENCE_STORAGE_VERSION}`;
 
 export const PreferenceKeys = {
   theme: `${PREFERENCE_STORAGE_PREFIX}.theme`,
