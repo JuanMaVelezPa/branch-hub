@@ -1,9 +1,9 @@
 package dev.jotaeme.branchhub.integration;
 
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,9 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -24,16 +21,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Testcontainers
-@SpringBootTest
 @AutoConfigureMockMvc
-class LoginLockoutIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18")
-            .withDatabaseName("branchhub")
-            .withUsername("branchhub")
-            .withPassword("branchhub");
+class LoginLockoutIntegrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,9 +35,6 @@ class LoginLockoutIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("security.jwt.secret", () -> "test-secret-test-secret-test-secret-123");
         registry.add("security.jwt.expiration-seconds", () -> "3600");
         registry.add("app.notifications.enabled", () -> "false");
@@ -59,36 +45,6 @@ class LoginLockoutIntegrationTest {
 
     @BeforeEach
     void seedAdminAndResetLockout() {
-        // Same pattern as BranchFlowIntegrationTest: Testcontainers DB without Flyway in this harness.
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS iam_role (
-                  id UUID PRIMARY KEY,
-                  name VARCHAR(64) NOT NULL UNIQUE,
-                  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                )
-                """);
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS iam_user (
-                  id UUID PRIMARY KEY,
-                  email VARCHAR(320) UNIQUE,
-                  email_verified_at TIMESTAMPTZ,
-                  password_hash VARCHAR(255),
-                  enabled BOOLEAN NOT NULL DEFAULT true,
-                  failed_login_count INT NOT NULL DEFAULT 0,
-                  locked_until TIMESTAMPTZ,
-                  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                )
-                """);
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS iam_user_role (
-                  user_id UUID NOT NULL REFERENCES iam_user(id) ON DELETE CASCADE,
-                  role_id UUID NOT NULL REFERENCES iam_role(id) ON DELETE CASCADE,
-                  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                  PRIMARY KEY (user_id, role_id)
-                )
-                """);
-
         jdbcTemplate.update("DELETE FROM iam_user_role");
         jdbcTemplate.update("DELETE FROM iam_user");
         jdbcTemplate.update("DELETE FROM iam_role");

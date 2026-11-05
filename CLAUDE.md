@@ -34,7 +34,7 @@ npm run test:e2e:admin-smoke
 npm run openapi:generate      # regenerate typings from http://localhost:8081/v3/api-docs (backend must be running)
 ```
 
-Integration tests (`backend/src/test/java/.../integration`) use Testcontainers PostgreSQL, so Docker must be running. The test config (`src/test/resources/application.properties`) seeds a SUPER_ADMIN with `admin` / `admin123` and disables notifications.
+Every test that starts a Spring context extends `support/AbstractPostgresIntegrationTest`, which shares one Testcontainers PostgreSQL (wired with `@ServiceConnection`) across the whole run; Flyway builds its schema and there is no H2. Docker must be running for `./gradlew test`. The test `application.properties` replaces the main one, so it sets `ddl-auto=validate` itself. The test config (`src/test/resources/application.properties`) seeds a SUPER_ADMIN with `admin` / `admin123` and disables notifications.
 
 ## Backend architecture
 
@@ -52,7 +52,7 @@ Key flows that span several layers:
 - **Errors** are RFC 7807 Problem Details (`type`, `title`, `status`, `detail`, `instance`, `timestamp`, optional `errors`).
 - **Auth:** login returns a short-lived access JWT in the response body and sets an HttpOnly refresh cookie. `POST /api/v1/auth/refresh|logout` act on that cookie. Access rules: `/api/v1/admin/**` is SUPER_ADMIN only (enforced in the security config and by `@PreAuthorize` on admin controllers), `/api/v1/branches/**` allows SUPER_ADMIN or APP_ADMIN, and `GET /api/v1/me` needs any authenticated user. On startup the app seeds a SUPER_ADMIN (`APP_SUPER_ADMIN_EMAIL`/`_PASSWORD`) if no account with that email exists.
 - **Profiles:** `docker`, `prod` (no Swagger, reduced actuator) and `debug` in `src/main/resources/application-*.properties`. A production-like stack is `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build`.
-- **Flyway** migrations live in `src/main/resources/db/migration/V{n}__desc.sql`. Never edit an applied `V*` script; add a new version instead. Known issue: Flyway does not run yet (Boot 4 needs `spring-boot-starter-flyway`); the `docker` profile uses `ddl-auto=update`. The fix is planned as SPEC 02.
+- **Flyway** migrations live in `src/main/resources/db/migration/V{n}__desc.sql`. Flyway owns the schema in every profile (`spring-boot-starter-flyway`); Hibernate only runs `ddl-auto=validate`. `V1__init_schema.sql` is the frozen baseline: never edit an applied `V*` script, add a new version instead.
 - Custom Micrometer metrics use the `app_*` prefix (see `backend/README.md`). Prometheus alert rules in `monitoring/` (group `branch-hub-alerts`, job `branch-hub-api`) depend on them, so renaming a metric breaks alerts. The Grafana dashboard is `monitoring/grafana/dashboards/branch-hub-observability.json`.
 
 ## Frontend architecture

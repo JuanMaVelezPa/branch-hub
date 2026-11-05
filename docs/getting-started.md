@@ -66,6 +66,8 @@ The database is `branchhub`, with user `branchhub` (password `branchhub` in `.en
 | In Docker Compose (service `app`) | `jdbc:postgresql://postgres:5432/branchhub` (the default in `.env.example`) |
 | On your machine (Gradle or IDE), using the Compose Postgres | `jdbc:postgresql://localhost:5433/branchhub` (Compose maps host port 5433 to 5432) |
 
+**Upgrading from a database Hibernate created:** Flyway now owns the schema. A database from before that change has tables but no `flyway_schema_history`, so Flyway refuses to migrate it and the API does not start. Run `docker compose down -v` once and start again; this deletes local data only, and the super admin is seeded again at startup.
+
 **Upgrading an older checkout:** before the rename to Branch Hub, the database had a different name and user. Update the `POSTGRES_*` and `DB_*` lines in your `.env` to match `.env.example`, then start from an empty volume with `docker compose down -v`. Older checkouts had no Compose project name, so Compose used the folder name; if those containers are still running, remove them first with `docker compose -p <folder-name> down -v`. This deletes local data only; the super admin is seeded again at startup.
 
 ## Default login
@@ -106,12 +108,11 @@ Run the API and the SPA on your machine, and use the Compose Postgres container 
    export DB_USERNAME=branchhub DB_PASSWORD=branchhub
    export JWT_SECRET='a-local-secret-of-at-least-32-characters'
    export APP_NOTIFICATIONS_ENABLED=false     # no Kafka: turns off the outbox relay and the consumer
-   export SPRING_PROFILES_ACTIVE=docker       # lets Hibernate create the tables (see note)
    ./gradlew bootRun
    ```
 
    - The Compose Kafka advertises itself as `kafka:9092`, which only resolves inside the Compose network. `APP_NOTIFICATIONS_ENABLED=false` lets the API run without it; branch writes still save their outbox events.
-   - Note: Flyway migrations do not run yet (a known issue, planned as the next fix). Until then the tables come from Hibernate (`ddl-auto=update` in the `docker` profile). With the default profile, the API expects the tables to exist already.
+   - Flyway creates the tables on startup, and Hibernate only validates them.
 
 3. Start the SPA (from `frontend/`):
 
@@ -125,7 +126,7 @@ Run the API and the SPA on your machine, and use the Compose Postgres container 
 ## Run the tests
 
 ```bash
-# Backend (from backend/). Integration tests use Testcontainers, so Docker must be running.
+# Backend (from backend/). Every Spring context test uses a shared Testcontainers PostgreSQL, so Docker must be running.
 ./gradlew clean test
 
 # Frontend unit tests and production build (from frontend/)

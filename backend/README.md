@@ -20,7 +20,9 @@ Spring Boot **4** service (Java **25**, Gradle) for Branch Hub. Clean Architectu
 
 Schema changes live **in this module** next to the code that uses them — same repo, same review, same CI. Configuration: `spring.flyway.locations=classpath:db/migration` in `application.properties`.
 
-> **Known issue:** Flyway does not run yet. Spring Boot 4 needs `spring-boot-starter-flyway`, and `build.gradle` only declares `flyway-core`. In Docker Compose the `docker` profile creates the schema with Hibernate (`ddl-auto=update`), and the integration tests create their tables with SQL. The scripts below are still the intended source of truth; the fix is planned as the next spec.
+Flyway owns the schema. `spring-boot-starter-flyway` runs the scripts on every startup, in every profile, and Hibernate only checks the entities against the result (`spring.jpa.hibernate.ddl-auto=validate`). A mismatch stops the app at startup.
+
+The schema starts from a single baseline, `V1__init_schema.sql` (branches, the transactional outbox and IAM). **It is frozen:** every later change is a new `V2__…`, `V3__…` script, never an edit to `V1`.
 
 | Location | Role |
 |----------|------|
@@ -28,7 +30,7 @@ Schema changes live **in this module** next to the code that uses them — same 
 
 ### Versioned migrations (`V__`)
 
-- **Naming:** `V{version}__{short_description}.sql` — e.g. `V3__add_user_roles.sql`. Use a **single increasing version** per new file (integer or with underscores per [Flyway rules](https://documentation.red-gate.com/flyway)).
+- **Naming:** `V{version}__{short_description}.sql` — e.g. `V2__add_user_roles.sql`. Use a **single increasing version** per new file (integer or with underscores per [Flyway rules](https://documentation.red-gate.com/flyway)).
 - **Executed once** per database; Flyway records them in `flyway_schema_history`.
 - **Do not edit** a `V*` script that has already been applied in **shared** environments (dev/staging/prod). Fix forward with a **new** `V*` migration (`ALTER`, `DROP`, data backfill, etc.). Editing old files is only safe on **throwaway local DBs** before anyone else applies them.
 
@@ -46,11 +48,14 @@ Schema changes live **in this module** next to the code that uses them — same 
 ### PostgreSQL notes
 
 - There are no Oracle-style **packages**; use **schemas** (`CREATE SCHEMA`) or clear naming under `public`.
-- Prefer explicit **`IF NOT EXISTS`** only where Flyway semantics allow; rely on **versioned** scripts for deterministic history.
+- Do not use **`IF NOT EXISTS`** in `V__` scripts: a versioned script runs exactly once, so a guard only hides a broken history.
 
 ### Tests and local dev
 
-- Target: tests that need a real schema use the same Flyway-managed schema (e.g. Testcontainers) so migrations stay the **single source of truth**. Today the integration tests create their tables with SQL (see the known issue above).
+- Every test that starts a Spring context extends `support/AbstractPostgresIntegrationTest`. It starts **one** `postgres:18` Testcontainers container for the whole `./gradlew test` run and wires it in with `@ServiceConnection`. Flyway builds the schema on that database, and `ddl-auto=validate` checks it, so the tests run on the same schema as the app. There is no H2.
+- **Docker must be running** for `./gradlew test`.
+- Tests share one database. A test that writes rows deletes the rows of its tables in `@BeforeEach`; it never creates tables.
+- `FlywayMigrationIntegrationTest` checks that version `1` is applied and that every app table exists.
 
 ## Run with Docker (full stack)
 
@@ -156,7 +161,7 @@ Prometheus rules (group `branch-hub-alerts`) → Alertmanager → Discord (see `
 
 ## Tests
 
-From **`backend/`**:
+From **`backend/`**, with Docker running (Spring context tests use a shared Testcontainers PostgreSQL, see [Tests and local dev](#tests-and-local-dev)):
 
 ```bash
 ./gradlew clean test
