@@ -4,6 +4,27 @@ All notable changes to Branch Hub are documented here. Version labels **`v1.x`**
 
 ## Unreleased
 
+**Gave the SPA its own visual identity (SPEC 03).** Frontend only: no backend or API contract change.
+
+- **Identity:**
+  - DaisyUI's `light` and `dark` themes are overridden with the "wayfinding" tokens (route green `#0E7A5E` / `#3FBF94`, signal amber, paper and ink), in OKLCH, with every color token set explicitly. Theme names and stored preferences are unchanged.
+  - Overpass Variable is self-hosted through `@fontsource-variable/overpass` and is the base font. Counts, codes and dates use tabular numerals.
+  - New branching-node logo (`shared/ui/logo`), also used as `favicon.svg`.
+- **Shell:** a sidebar (Dashboard, Branches, Admin, Profile) with a topbar replaces the top navbar. On `lg` and up the sidebar collapses to an icon rail, saved under `branch-hub.pref.v1.sidebar`. Below `lg` it is a drawer opened from a hamburger.
+- **Login:** split screen with a route-map drawing that draws itself in once (still under reduced motion), the logo and the tagline "Every branch's details, in one place."
+- **Dashboard:** new `/dashboard` route is the post-login home, and `/`, the login, `guestGuard` and `roleGuard` redirect there. It shows a summary sentence with live counts (singular and plural forms in both locales), "Add branch" and "Create user" quick actions, and, for SUPER_ADMIN, the latest 5 audit events as a timeline. An APP_ADMIN dashboard sends no `/api/v1/admin/**` request.
+- **Screens:** every screen, the create-user modal and the shared UI components follow the new design rules. Below `sm`, the branches list, admin users and audit log show one card per row, with a sort select. Inactive branches show an amber marker plus the word "Inactive".
+- **Copy:**
+  - Sentence case everywhere. "New branch" is now "Add branch" (`data-testid="branch-add"`), and `appTitle` is "Branch Hub".
+  - Successful mutations now show a toast that keeps the action's verb (Branch added, Changes saved, Branch deactivated, User created, Roles saved, User enabled/disabled).
+  - Empty states name the next action, and error titles say what failed and what to do.
+  - The dictionaries moved to `core/i18n/`. `es` is typed against `en`, and a unit spec checks that both have the same keys and placeholders.
+- **Bundle:** the Spanish dictionary is lazy-loaded (the app initializer waits for it when Spanish is stored), and the DaisyUI `include` list drops seven unused components. The initial bundle is 568.46 kB, against 561.28 kB on `main`; the `initial` warning budget goes from 560 kB to 600 kB.
+- **TypeScript 6 readiness:** `tsconfig.app.json` and `tsconfig.spec.json` set `rootDir: ./src` explicitly, which TypeScript 6 (and editors that bundle it) now requires.
+- **Self-critique pass:** removed the always-visible sort icon from idle column headers. The hint now shows only on hover or keyboard focus.
+- **Tests:** unit specs for the sidebar preference, the audit action labels, relative time and the dictionaries. The smoke suites use the new `nav-*` and `branch-add` test IDs. New `npm run test:e2e:screenshots` captures every screen at 390 and 1280 px in light and dark into the gitignored `frontend/e2e/__screenshots__/`.
+- **Docs:** [frontend/README.md](frontend/README.md#design-direction) documents the design direction, tokens with contrast ratios, rules, shell behavior and the screenshot command. The root README screenshots in `docs/images/` are refreshed, with a new `dashboard.png`. `DOCS_IMAGES=1 npm run test:e2e:screenshots` regenerates them.
+
 **Flyway now owns the database schema (SPEC 02).**
 
 - **Schema:**

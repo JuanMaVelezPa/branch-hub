@@ -1,0 +1,121 @@
+<h1 class="sr-only">{{ i18n.t('dashboardTitle') }}</h1>
+
+<div class="flex flex-col gap-8">
+  <!-- Summary sentence + quick actions -->
+  <section
+    class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between"
+    data-testid="dashboard-summary"
+    [attr.aria-busy]="summaryLoading()"
+  >
+    <div class="min-w-0 max-w-[40rem]">
+      @if (summaryError()) {
+        <div class="flex flex-col items-start gap-3">
+          <app-inline-alert [message]="i18n.t('dashboardSummaryError')" variant="error" />
+          <button type="button" class="btn btn-sm border-rule bg-surface" (click)="retrySummary()">{{ i18n.t('retry') }}</button>
+        </div>
+      } @else if (summaryLoading()) {
+        <div class="flex flex-col gap-3" role="status" [attr.aria-label]="i18n.t('dashboardLoadingSummary')">
+          <div class="skeleton h-8 w-72 max-w-full"></div>
+          @if (isSuperAdmin()) {
+            <div class="skeleton h-8 w-60 max-w-full"></div>
+          }
+        </div>
+      } @else {
+        <div class="flex flex-col gap-1 text-2xl">
+          @if (branchTotal() === 0) {
+            <p>{{ i18n.t('dashboardNoBranches') }}</p>
+          } @else {
+            <p>
+              {{ branchSentence().before }}<span class="font-bold tabular-nums">{{ branchSentence().count }}</span
+              >{{ branchSentence().after }}
+            </p>
+          }
+          @if (isSuperAdmin()) {
+            <p>
+              {{ userSentence().before }}<span class="font-bold tabular-nums">{{ userSentence().count }}</span
+              >{{ userSentence().after }}
+            </p>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/branches/new" class="btn btn-primary gap-2">
+        <app-icon name="plus" sizeClass="h-4 w-4" />
+        {{ i18n.t('addBranch') }}
+      </a>
+      @if (isSuperAdmin()) {
+        <a routerLink="/admin/users" [queryParams]="{ create: 1 }" class="btn gap-2 border-rule bg-surface">
+          <app-icon name="plus" sizeClass="h-4 w-4" />
+          {{ i18n.t('createUser') }}
+        </a>
+      }
+    </div>
+  </section>
+
+  <!-- Recent activity (SUPER_ADMIN only) -->
+  @if (isSuperAdmin()) {
+    <section
+      class="max-w-[40rem]"
+      aria-labelledby="dashboard-activity-title"
+      data-testid="dashboard-activity"
+      [attr.aria-busy]="activityQuery.isPending()"
+    >
+      <h2 id="dashboard-activity-title" class="mb-3 text-xl font-semibold">{{ i18n.t('recentActivity') }}</h2>
+
+      @if (activityQuery.isError()) {
+        <div class="flex flex-col items-start gap-3">
+          <app-inline-alert [message]="i18n.t('dashboardActivityError')" variant="error" />
+          <button type="button" class="btn btn-sm border-rule bg-surface" (click)="retryActivity()">{{ i18n.t('retry') }}</button>
+        </div>
+      } @else if (activityQuery.isPending()) {
+        <div class="flex flex-col gap-4" role="status" [attr.aria-label]="i18n.t('dashboardLoadingActivity')">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="skeleton h-10 w-full"></div>
+          }
+        </div>
+      } @else if (activity().length === 0) {
+        <p class="text-base-content/80">
+          {{ i18n.t('dashboardNoActivity') }}
+          <a routerLink="/admin/users" [queryParams]="{ create: 1 }" class="text-primary underline underline-offset-4 hover:decoration-2 focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{
+            i18n.t('createUser')
+          }}</a>
+        </p>
+      } @else {
+        <!-- A real sequence, so it gets route-line markers. Newest first. -->
+        <ul class="timeline timeline-vertical timeline-compact timeline-snap-icon">
+          @for (item of activity(); track item.id; let first = $first; let last = $last) {
+            <li>
+              @if (!first) {
+                <hr class="bg-primary" />
+              }
+              <div class="timeline-middle">
+                <span
+                  class="block h-3.5 w-3.5 rounded-full border-[3px] border-primary"
+                  [class.bg-primary]="first"
+                  [class.bg-surface]="!first"
+                ></span>
+              </div>
+              <div class="timeline-end mx-0 mb-4 flex w-full min-w-0 flex-col gap-0.5 pl-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <span class="font-semibold">{{ item.label }}</span>
+                  <time
+                    class="text-sm text-base-content/80 tabular-nums"
+                    [attr.datetime]="item.createdAt"
+                    [title]="item.createdAt | date: 'medium'"
+                    >{{ item.relative }}</time
+                  >
+                </div>
+                <span class="text-sm text-base-content/80">{{ item.actor }}</span>
+              </div>
+              @if (!last) {
+                <hr class="bg-primary" />
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

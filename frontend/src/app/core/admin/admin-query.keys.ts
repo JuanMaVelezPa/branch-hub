@@ -18,3 +18,8 @@ export function invalidateAdminUsers(queryClient: QueryClient): void {
 export function invalidateAdminRoles(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: adminQueryKeys.roles() });
 }
+
+/** Every admin user mutation writes an IAM audit entry, so the audit log and dashboard timeline go stale too. */
+export function invalidateAdminAuditLogs(queryClient: QueryClient): void {
+  void queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs() });
+}

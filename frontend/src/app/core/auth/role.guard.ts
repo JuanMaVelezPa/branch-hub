@@ -14,7 +14,7 @@ export function roleGuard(required: string[]): CanActivateFn {
     if (required.some((r) => roles.includes(r))) {
       return true;
     }
-    return router.createUrlTree(['/branches']);
+    return router.createUrlTree(['/dashboard']);
   };
 }
 

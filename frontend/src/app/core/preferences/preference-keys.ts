@@ -10,8 +10,12 @@ export const PreferenceKeys = {
   theme: `${PREFERENCE_STORAGE_PREFIX}.theme`,
   /** BCP 47 tag, e.g. en, es — wire to i18n when added */
   locale: `${PREFERENCE_STORAGE_PREFIX}.locale`,
+  /** Desktop (lg+) sidebar state: `expanded` (labels) or `collapsed` (icon rail). */
+  sidebar: `${PREFERENCE_STORAGE_PREFIX}.sidebar`,
 } as const;
 
 export type ThemeMode = 'light' | 'dark';
+
+export type SidebarMode = 'expanded' | 'collapsed';
 
 export type LocaleCode = string;

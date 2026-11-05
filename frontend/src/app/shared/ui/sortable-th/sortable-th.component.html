@@ -1,6 +1,6 @@
 <button
   type="button"
-  class="btn btn-ghost btn-sm h-auto min-h-0 gap-1.5 px-2 py-1 -ms-1 font-semibold normal-case text-inherit hover:bg-base-200/80"
+  class="group btn btn-ghost btn-sm h-auto min-h-0 gap-1.5 px-2 py-1 -ms-2 font-semibold text-inherit hover:bg-paper"
   [attr.aria-label]="ariaLabel()"
   (click)="onClick()"
 >
@@ -12,6 +12,10 @@
       <app-icon name="arrow-down" sizeClass="h-4 w-4 shrink-0 text-primary" />
     }
   } @else {
-    <app-icon name="arrows-up-down" sizeClass="h-3.5 w-3.5 shrink-0 opacity-45" />
+    <!-- Idle columns show the sort hint only on hover or keyboard focus; the space stays reserved. -->
+    <app-icon
+      name="arrows-up-down"
+      sizeClass="h-3.5 w-3.5 shrink-0 text-base-content/70 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+    />
   }
 </button>

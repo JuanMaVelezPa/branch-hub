@@ -1,18 +1,15 @@
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-5">
   <app-admin-subnav />
-  <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold">{{ i18n.t('adminUsersTitle') }}</h1>
     <dialog #createUserDialog class="modal" data-testid="admin-create-user-modal">
-      <div class="modal-box">
-        <h3 class="text-center text-lg font-semibold">{{ i18n.t('createUser') }}</h3>
-        <p class="mt-1 text-center text-xs text-base-content/70">{{ i18n.t('email') }} + {{ i18n.t('password') }} + {{ i18n.t('roles') }}</p>
-        <div class="mx-auto mt-4 grid max-w-lg gap-3">
-          <label class="form-control">
-            <div class="label">
-              <span class="label-text">{{ i18n.t('email') }}</span>
-            </div>
+      <div class="modal-box rounded-box border border-rule bg-surface">
+        <h2 class="text-xl font-semibold">{{ i18n.t('createUser') }}</h2>
+        <div class="mt-5 grid gap-4">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-sm font-semibold">{{ i18n.t('email') }}</span>
             <input
-              class="input input-bordered w-full"
+              class="input w-full"
               [class.input-error]="(createSubmitAttempted() || createEmailTouched()) && createEmail().trim().length > 0 && !createEmailValid()"
               data-testid="admin-create-user-email"
               [value]="createEmail()"
@@ -22,17 +19,13 @@
               autocomplete="off"
             />
             @if ((createSubmitAttempted() || createEmailTouched()) && createEmail().trim().length > 0 && !createEmailValid()) {
-              <div class="label">
-                <span class="label-text-alt text-error text-xs">{{ i18n.t('invalidEmail') }}</span>
-              </div>
+              <span class="text-sm text-error">{{ i18n.t('invalidEmail') }}</span>
             }
           </label>
-          <label class="form-control">
-            <div class="label">
-              <span class="label-text">{{ i18n.t('password') }}</span>
-            </div>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-sm font-semibold">{{ i18n.t('password') }}</span>
             <input
-              class="input input-bordered w-full"
+              class="input w-full"
               [class.input-error]="(createSubmitAttempted() || createPasswordTouched()) && createPassword().length > 0 && !createPasswordValid()"
               type="password"
               data-testid="admin-create-user-password"
@@ -44,30 +37,28 @@
           </label>
           <app-password-rules-hint [password]="createPassword()" />
 
-          <div>
-            <div class="label">
-              <span class="label-text">{{ i18n.t('roles') }}</span>
-            </div>
+          <fieldset>
+            <legend class="mb-1.5 text-sm font-semibold">{{ i18n.t('roles') }}</legend>
             <div class="grid gap-2 sm:grid-cols-2">
               @for (r of roleNames(); track r) {
-                <label class="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2">
+                <label class="flex items-center gap-2 rounded-field border border-rule px-3 py-2">
                   <input
                     type="checkbox"
-                    class="checkbox checkbox-sm"
+                    class="checkbox checkbox-sm rounded-field"
                     [attr.data-testid]="'admin-create-user-role-' + r"
                     [checked]="createSelectedRoles().has(r)"
                     (change)="toggleCreateRole(r)"
                   />
-                  <span class="font-mono text-sm">{{ r }}</span>
+                  <span class="text-sm">{{ r }}</span>
                 </label>
               }
             </div>
-          </div>
+          </fieldset>
         </div>
 
         <div class="modal-action">
           <form method="dialog" class="flex gap-2">
-            <button class="btn btn-ghost" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
+            <button class="btn border-rule bg-surface" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
           </form>
           <button
             type="button"
@@ -77,39 +68,39 @@
             (click)="submitCreate(createUserDialog)"
           >
             @if (mutating()) {
-              {{ i18n.t('saving') }}
+              {{ i18n.t('creatingUser') }}
             } @else {
-              {{ i18n.t('create') }}
+              {{ i18n.t('createUser') }}
             }
           </button>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+      <form method="dialog" class="modal-backdrop"><button [attr.aria-label]="i18n.t('cancel')"></button></form>
     </dialog>
 
     <dialog #editRolesDialog class="modal" data-testid="admin-edit-roles-modal">
-      <div class="modal-box">
-        <h3 class="text-lg font-semibold">{{ i18n.t('editRoles') }}</h3>
-        <p class="mt-1 text-sm text-base-content/70 font-mono">{{ rolesUser()?.email ?? '' }}</p>
+      <div class="modal-box rounded-box border border-rule bg-surface">
+        <h2 class="text-xl font-semibold">{{ i18n.t('editRoles') }}</h2>
+        <p class="mt-1 break-all text-base-content/80">{{ rolesUser()?.email ?? '' }}</p>
 
         <div class="mt-4 grid gap-2 sm:grid-cols-2">
           @for (r of roleNames(); track r) {
-            <label class="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2">
+            <label class="flex items-center gap-2 rounded-field border border-rule px-3 py-2">
               <input
                 type="checkbox"
-                class="checkbox checkbox-sm"
+                class="checkbox checkbox-sm rounded-field"
                 [attr.data-testid]="'admin-edit-roles-role-' + r"
                 [checked]="rolesSelected().has(r)"
                 (change)="toggleEditRole(r)"
               />
-              <span class="font-mono text-sm">{{ r }}</span>
+              <span class="text-sm">{{ r }}</span>
             </label>
           }
         </div>
 
         <div class="modal-action">
           <form method="dialog" class="flex gap-2">
-            <button class="btn btn-ghost" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
+            <button class="btn border-rule bg-surface" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
           </form>
           <button
             type="button"
@@ -121,76 +112,100 @@
             @if (mutating()) {
               {{ i18n.t('saving') }}
             } @else {
-              {{ i18n.t('saveChanges') }}
+              {{ i18n.t('saveRoles') }}
             }
           </button>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+      <form method="dialog" class="modal-backdrop"><button [attr.aria-label]="i18n.t('cancel')"></button></form>
     </dialog>
 
     <dialog #confirmEnabledDialog class="modal" data-testid="admin-confirm-enabled-modal">
-      <div class="modal-box">
-        <h3 class="text-lg font-semibold">
-          {{ (confirmUser()?.enabled ?? false) ? i18n.t('disable') : i18n.t('enable') }}
-        </h3>
-        <p class="mt-2 text-sm text-base-content/70">
+      <div class="modal-box rounded-box border border-rule bg-surface">
+        <h2 class="text-xl font-semibold">
+          {{ (confirmUser()?.enabled ?? false) ? i18n.t('disableUserTitle') : i18n.t('enableUserTitle') }}
+        </h2>
+        <p class="mt-2 break-all text-base-content/80">
           {{ confirmUser()?.email ?? '' }}
         </p>
         <div class="modal-action">
           <form method="dialog" class="flex gap-2">
-            <button class="btn btn-ghost" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
+            <button class="btn border-rule bg-surface" [disabled]="mutating()">{{ i18n.t('cancel') }}</button>
           </form>
           <button
             type="button"
             class="btn"
             data-testid="admin-confirm-enabled-submit"
             [class.btn-error]="confirmUser()?.enabled"
-            [class.btn-success]="!(confirmUser()?.enabled ?? false)"
+            [class.btn-primary]="!(confirmUser()?.enabled ?? false)"
             [disabled]="mutating()"
             (click)="submitToggleEnabled(confirmEnabledDialog)"
           >
             @if (mutating()) {
               {{ i18n.t('saving') }}
             } @else {
-              {{ (confirmUser()?.enabled ?? false) ? i18n.t('disable') : i18n.t('enable') }}
+              {{ (confirmUser()?.enabled ?? false) ? i18n.t('disableUser') : i18n.t('enableUser') }}
             }
           </button>
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+      <form method="dialog" class="modal-backdrop"><button [attr.aria-label]="i18n.t('cancel')"></button></form>
     </dialog>
 
     <button
       type="button"
-      class="btn btn-primary btn-sm"
+      class="btn btn-primary gap-2"
       data-testid="admin-create-user-open"
       [disabled]="mutating()"
       (click)="openCreateModal(createUserDialog)"
     >
-      @if (mutating()) {
-        {{ i18n.t('saving') }}
-      } @else {
-        {{ i18n.t('createUser') }}
-      }
+      <app-icon name="plus" sizeClass="h-4 w-4" />
+      {{ i18n.t('createUser') }}
     </button>
   </div>
 
-  <app-inline-alert [message]="error()" variant="warning" [title]="i18n.t('warningTitle')" />
+  <app-inline-alert [message]="error()" variant="error" [title]="i18n.t(errorTitle())" />
 
   <app-loading-state [active]="loading()" [label]="i18n.t('loadingUsers')" size="md" skeleton="table" />
 
   @if (!loading() && data()) {
     @if (data()!.totalElements === 0) {
-      <div class="rounded-lg border border-dashed border-base-300 bg-base-100/60 px-6 py-10 text-center text-sm text-base-content/60">
-        {{ i18n.t('emptyUsers') }}
+      <div class="flex flex-col items-start gap-3 rounded-box border border-rule bg-surface p-6">
+        <p>{{ i18n.t('emptyUsers') }}</p>
+        <button type="button" class="btn btn-primary btn-sm gap-2" (click)="openCreateModal(createUserDialog)">
+          <app-icon name="plus" sizeClass="h-4 w-4" />
+          {{ i18n.t('createUser') }}
+        </button>
       </div>
+    } @else if (!wide()) {
+      <!-- Phone: one card per user, with a sort control instead of column headers. -->
+      <app-sort-select
+        [options]="sortOptions()"
+        [activeKey]="sortColumn()"
+        [direction]="sortDirection()"
+        (sortActivate)="onSortColumn($event)"
+      />
+      <ul class="flex flex-col gap-2">
+        @for (u of visibleUsers(); track u.id) {
+          <li class="flex flex-col gap-2 rounded-box border border-rule bg-surface p-4">
+            <span class="break-all font-semibold">{{ u.email }}</span>
+            <app-status-marker class="text-sm" [ok]="u.enabled" [label]="enabledLabel(u)" />
+            <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt class="text-base-content/80">{{ i18n.t('roles') }}</dt>
+              <dd>{{ u.roles.join(', ') }}</dd>
+              <dt class="text-base-content/80">{{ i18n.t('createdAt') }}</dt>
+              <dd class="tabular-nums">{{ u.createdAt | date: 'yyyy-MM-dd HH:mm' }}</dd>
+            </dl>
+            <ng-container *ngTemplateOutlet="userActions; context: { $implicit: u }" />
+          </li>
+        }
+      </ul>
     } @else {
-      <div class="overflow-x-auto rounded-lg border border-base-300/80 bg-base-100 shadow-sm">
-        <table class="table table-zebra">
+      <div class="overflow-x-auto rounded-box border border-rule bg-surface">
+        <table class="table">
           <thead>
-            <tr>
-              <th scope="col" class="align-bottom">
+            <tr class="border-rule bg-paper text-base-content">
+              <th scope="col">
                 <app-sortable-th
                   [label]="i18n.t('email')"
                   columnKey="email"
@@ -199,16 +214,16 @@
                   (sortActivate)="onSortColumn($event)"
                 />
               </th>
-              <th scope="col" class="align-bottom">
+              <th scope="col">
                 <app-sortable-th
-                  [label]="i18n.t('enabled')"
+                  [label]="i18n.t('status')"
                   columnKey="enabled"
                   [activeKey]="sortColumn()"
                   [direction]="sortDirection()"
                   (sortActivate)="onSortColumn($event)"
                 />
               </th>
-              <th scope="col" class="align-bottom">
+              <th scope="col">
                 <app-sortable-th
                   [label]="i18n.t('createdAt')"
                   columnKey="createdAt"
@@ -217,40 +232,19 @@
                   (sortActivate)="onSortColumn($event)"
                 />
               </th>
-              <th scope="col" class="align-bottom">{{ i18n.t('roles') }}</th>
-              <th scope="col" class="align-bottom"></th>
+              <th scope="col">{{ i18n.t('roles') }}</th>
+              <th scope="col"><span class="sr-only">{{ i18n.t('actions') }}</span></th>
             </tr>
           </thead>
           <tbody>
             @for (u of visibleUsers(); track u.id) {
-              <tr>
-                <td class="font-mono text-sm">{{ u.email }}</td>
-                <td>{{ u.enabled ? i18n.t('yes') : i18n.t('no') }}</td>
-                <td class="font-mono text-xs">{{ u.createdAt | date: 'yyyy-MM-dd HH:mm' }}</td>
-                <td class="text-xs font-mono">{{ u.roles.join(', ') }}</td>
+              <tr class="border-rule">
+                <td class="break-all">{{ u.email }}</td>
+                <td class="whitespace-nowrap"><app-status-marker [ok]="u.enabled" [label]="enabledLabel(u)" /></td>
+                <td class="whitespace-nowrap tabular-nums">{{ u.createdAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+                <td>{{ u.roles.join(', ') }}</td>
                 <td class="whitespace-nowrap">
-                  <div class="flex flex-wrap gap-2 justify-end">
-                    <button
-                      type="button"
-                      class="btn btn-xs"
-                      [attr.data-testid]="'admin-toggle-enabled-' + u.id"
-                      [class.btn-error]="u.enabled"
-                      [class.btn-success]="!u.enabled"
-                      [disabled]="mutating()"
-                      (click)="openConfirmEnabled(confirmEnabledDialog, u)"
-                    >
-                      {{ u.enabled ? i18n.t('disable') : i18n.t('enable') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-xs btn-outline"
-                      [attr.data-testid]="'admin-edit-roles-' + u.id"
-                      [disabled]="mutating()"
-                      (click)="openEditRoles(editRolesDialog, u)"
-                    >
-                      {{ i18n.t('editRoles') }}
-                    </button>
-                  </div>
+                  <ng-container *ngTemplateOutlet="userActions; context: { $implicit: u }" />
                 </td>
               </tr>
             }
@@ -271,3 +265,27 @@
   }
 </div>
 
+<!-- Row actions, shared by the card and the table view. -->
+<ng-template #userActions let-u>
+  <div class="flex flex-wrap gap-2 sm:justify-end">
+    <button
+      type="button"
+      class="btn btn-sm border-rule bg-surface"
+      [class.text-error]="u.enabled"
+      [attr.data-testid]="'admin-toggle-enabled-' + u.id"
+      [disabled]="mutating()"
+      (click)="openConfirmEnabled(confirmEnabledDialog, u)"
+    >
+      {{ u.enabled ? i18n.t('disable') : i18n.t('enable') }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm border-rule bg-surface"
+      [attr.data-testid]="'admin-edit-roles-' + u.id"
+      [disabled]="mutating()"
+      (click)="openEditRoles(editRolesDialog, u)"
+    >
+      {{ i18n.t('editRoles') }}
+    </button>
+  </div>
+</ng-template>

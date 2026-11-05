@@ -8,5 +8,5 @@ export const guestGuard: CanActivateFn = () => {
   if (!auth.token()) {
     return true;
   }
-  return router.createUrlTree(['/branches']);
+  return router.createUrlTree(['/dashboard']);
 };

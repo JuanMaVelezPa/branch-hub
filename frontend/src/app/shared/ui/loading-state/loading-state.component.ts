@@ -7,6 +7,8 @@ export type LoadingSkeletonPreset = 'none' | 'table' | 'card' | 'form';
   selector: 'app-loading-state',
   imports: [LoadingSpinnerComponent],
   templateUrl: './loading-state.component.html',
+  // Renders nothing when inactive; hide the empty host so parent flex gaps collapse.
+  host: { class: 'block empty:hidden' },
 })
 export class LoadingStateComponent {
   readonly active = input(false);

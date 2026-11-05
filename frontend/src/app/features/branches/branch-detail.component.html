@@ -1,68 +1,41 @@
-<div class="mx-auto flex max-w-xl flex-col gap-6 px-1 sm:px-0">
-  <div class="flex flex-col items-center gap-2 text-center">
-    <a routerLink="/branches" class="btn btn-ghost btn-sm">{{ i18n.t('back') }}</a>
-    <h1 class="text-xl font-semibold tracking-tight text-base-content/90 sm:text-2xl">
-      {{ i18n.t('branchDetailTitle') }}
-    </h1>
-  </div>
+<div class="flex max-w-2xl flex-col gap-5">
+  <a routerLink="/branches" class="w-fit text-sm text-primary underline underline-offset-4 hover:decoration-2 focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ i18n.t('back') }}</a>
 
-  <app-inline-alert [message]="error()" variant="warning" [title]="i18n.t('warningTitle')" />
+  <app-inline-alert [message]="error()" variant="error" [title]="i18n.t(errorTitle())" />
 
-  <app-loading-state
-    [active]="loading()"
-    [label]="i18n.t('loadingBranch')"
-    size="md"
-    skeleton="card"
-  />
+  <app-loading-state [active]="loading()" [label]="i18n.t('loadingBranch')" size="md" skeleton="card" />
 
-  @if (!loading() && branch()) {
-    <div
-      class="mx-auto w-full max-w-md rounded-2xl border border-base-300/80 bg-base-100 px-6 py-8 text-center shadow-lg shadow-base-300/20"
-    >
-      <div class="mb-4 flex justify-center">
-        @if (branch()!.isActive) {
-          <span class="badge badge-success badge-lg gap-1 font-normal">{{ i18n.t('active') }}</span>
-        } @else {
-          <span class="badge badge-ghost badge-lg gap-1 font-normal">{{ i18n.t('branchInactive') }}</span>
-        }
-      </div>
+  @if (!loading() && branch(); as b) {
+    <section class="rounded-box border border-rule bg-surface p-6">
+      <h1 class="text-2xl font-semibold">{{ b.name }}</h1>
 
-      <p
-        class="font-mono text-xs uppercase tracking-widest text-primary/90"
-        data-testid="branch-detail-code"
-      >
-        {{ branch()!.code }}
-      </p>
-      <h2 class="mt-2 text-2xl font-semibold tracking-tight text-base-content sm:text-3xl">
-        {{ branch()!.name }}
-      </h2>
-      <p class="mt-2 text-base text-base-content/75">{{ branch()!.city }}</p>
+      <dl class="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-[max-content_1fr]">
+        <dt class="text-sm text-base-content/80">{{ i18n.t('code') }}</dt>
+        <dd class="font-semibold tabular-nums" data-testid="branch-detail-code">{{ b.code }}</dd>
 
-      <div class="divider my-6 text-base-content/30"></div>
+        <dt class="text-sm text-base-content/80">{{ i18n.t('city') }}</dt>
+        <dd>{{ b.city }}</dd>
 
-      <dl class="mx-auto grid max-w-xs gap-3 text-start text-sm">
-        <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
-          <dt class="text-base-content/50">{{ i18n.t('createdAtLabel') }}</dt>
-          <dd class="font-medium text-base-content">{{ branch()!.createdAt | date: 'medium' }}</dd>
-        </div>
-        <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
-          <dt class="text-base-content/50">{{ i18n.t('updatedAtLabel') }}</dt>
-          <dd class="font-medium text-base-content">{{ branch()!.updatedAt | date: 'medium' }}</dd>
-        </div>
+        <dt class="text-sm text-base-content/80">{{ i18n.t('status') }}</dt>
+        <dd>
+          <app-status-marker [ok]="b.isActive" [label]="b.isActive ? i18n.t('active') : i18n.t('branchInactive')" />
+        </dd>
+
+        <dt class="text-sm text-base-content/80">{{ i18n.t('createdAtLabel') }}</dt>
+        <dd class="tabular-nums">{{ b.createdAt | date: 'medium' }}</dd>
+
+        <dt class="text-sm text-base-content/80">{{ i18n.t('updatedAtLabel') }}</dt>
+        <dd class="tabular-nums">{{ b.updatedAt | date: 'medium' }}</dd>
       </dl>
 
-      <div class="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
-        <a
-          [routerLink]="['/branches', branch()!.id, 'edit']"
-          class="btn btn-primary btn-sm sm:btn-md"
-          data-testid="branch-detail-edit"
-        >
+      <div class="mt-6 flex flex-wrap gap-2 border-t border-rule pt-5">
+        <a [routerLink]="['/branches', b.id, 'edit']" class="btn btn-primary" data-testid="branch-detail-edit">
           {{ i18n.t('editBranch') }}
         </a>
-        @if (branch()!.isActive) {
+        @if (b.isActive) {
           <button
             type="button"
-            class="btn btn-outline btn-error btn-sm sm:btn-md"
+            class="btn border-rule bg-surface text-error"
             [disabled]="actionBusy()"
             data-testid="branch-detail-deactivate"
             (click)="openDeactivateDialog()"
@@ -71,15 +44,15 @@
           </button>
         }
       </div>
-    </div>
+    </section>
   }
 
   <dialog #deactivateDialog class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h3 class="text-lg font-bold">{{ i18n.t('deactivateModalTitle') }}</h3>
-      <p class="py-3 text-sm text-base-content/80">{{ i18n.t('deactivateConfirm') }}</p>
+    <div class="modal-box rounded-box border border-rule bg-surface">
+      <h2 class="text-xl font-semibold">{{ i18n.t('deactivateModalTitle') }}</h2>
+      <p class="py-3">{{ i18n.t('deactivateConfirm') }}</p>
       <div class="modal-action">
-        <button type="button" class="btn btn-ghost" (click)="closeDeactivateDialog()">
+        <button type="button" class="btn border-rule bg-surface" (click)="closeDeactivateDialog()">
           {{ i18n.t('cancel') }}
         </button>
         <button

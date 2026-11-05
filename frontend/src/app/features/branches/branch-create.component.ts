@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { BranchApiService } from '../../core/branches/branch-api.service';
 import { invalidateBranchListQueries } from '../../core/branches/branch-query.keys';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { UiFeedbackService } from '../../core/ui-feedback/ui-feedback.service';
 import { problemDetailMessage } from '../../core/util/http-error';
 import { BusySectionComponent } from '../../shared/ui/busy-section/busy-section.component';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
@@ -28,6 +29,7 @@ export class BranchCreateComponent {
   private readonly router = inject(Router);
   private readonly queryClient = inject(QueryClient);
   protected readonly i18n = inject(I18nService);
+  private readonly ui = inject(UiFeedbackService);
 
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
@@ -50,6 +52,7 @@ export class BranchCreateComponent {
       .subscribe({
         next: () => {
           invalidateBranchListQueries(this.queryClient);
+          this.ui.success(this.i18n.t('toastBranchAdded'));
           void this.router.navigateByUrl('/branches');
         },
         error: (err) => this.error.set(problemDetailMessage(err)),

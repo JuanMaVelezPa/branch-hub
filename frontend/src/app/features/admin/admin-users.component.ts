@@ -1,22 +1,33 @@
-import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { Component, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { QueryClient, injectQuery } from '@tanstack/angular-query-experimental';
 import { finalize, lastValueFrom } from 'rxjs';
 import { AdminApiService } from '../../core/admin/admin-api.service';
-import { adminQueryKeys, invalidateAdminRoles, invalidateAdminUsers } from '../../core/admin/admin-query.keys';
-import { I18nService } from '../../core/i18n/i18n.service';
+import {
+  adminQueryKeys,
+  invalidateAdminAuditLogs,
+  invalidateAdminRoles,
+  invalidateAdminUsers,
+} from '../../core/admin/admin-query.keys';
+import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import type {
   AdminUser,
   CreateUserPayload,
   SetUserEnabledPayload,
   SetUserRolesPayload,
 } from '../../core/models/api-types';
+import { UiFeedbackService } from '../../core/ui-feedback/ui-feedback.service';
 import { problemDetailMessage } from '../../core/util/http-error';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state/loading-state.component';
 import { PageNavComponent } from '../../shared/ui/page-nav/page-nav.component';
 import { PasswordRulesHintComponent } from '../../shared/ui/password-rules-hint/password-rules-hint.component';
+import { IconComponent } from '../../shared/ui/icon/icon.component';
+import { SortSelectComponent, type SortOption } from '../../shared/ui/sort-select/sort-select.component';
 import { SortableThComponent } from '../../shared/ui/sortable-th/sortable-th.component';
+import { StatusMarkerComponent } from '../../shared/ui/status-marker/status-marker.component';
+import { SM_UP, injectMediaQuery } from '../../shared/util/media-query';
 import { AdminSubnavComponent } from './admin-subnav.component';
 import { formatSortQuery, toggleTableSort, type SortDirection } from '../../shared/util/table-sort';
 import { isValidEmail, isValidPassword } from '../../core/validation/account-validation';
@@ -25,11 +36,15 @@ import { isValidEmail, isValidPassword } from '../../core/validation/account-val
   selector: 'app-admin-users',
   imports: [
     DatePipe,
+    NgTemplateOutlet,
+    IconComponent,
     InlineAlertComponent,
     LoadingStateComponent,
     PageNavComponent,
     PasswordRulesHintComponent,
+    SortSelectComponent,
     SortableThComponent,
+    StatusMarkerComponent,
     AdminSubnavComponent,
   ],
   templateUrl: './admin-users.component.html',
@@ -38,9 +53,29 @@ export class AdminUsersComponent {
   private readonly admin = inject(AdminApiService);
   private readonly queryClient = inject(QueryClient);
   protected readonly i18n = inject(I18nService);
+  private readonly ui = inject(UiFeedbackService);
+
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly createUserDialog = viewChild<ElementRef<HTMLDialogElement>>('createUserDialog');
 
   readonly error = signal<string | null>(null);
+  /** Names what failed: the list load or the last mutation. */
+  readonly errorTitle = signal<TranslationKey>('usersLoadFailed');
   readonly mutating = signal(false);
+
+  /** Table from `sm` up, stacked cards below. */
+  protected readonly wide = injectMediaQuery(SM_UP);
+
+  protected readonly sortOptions = computed((): SortOption[] => [
+    { key: 'email', label: this.i18n.t('email') },
+    { key: 'enabled', label: this.i18n.t('status') },
+    { key: 'createdAt', label: this.i18n.t('createdAt') },
+  ]);
+
+  protected enabledLabel(u: AdminUser): string {
+    return u.enabled ? this.i18n.t('enabled') : this.i18n.t('userDisabled');
+  }
 
   // Create user modal state
   readonly createEmail = signal('');
@@ -89,8 +124,19 @@ export class AdminUsersComponent {
   readonly data = computed(() => this.usersQuery.data() ?? null);
 
   constructor() {
+    // Dashboard "Create user" links here with `?create=1`: open the modal once, then drop the param so a
+    // reload or Back does not reopen it.
+    afterNextRender(() => {
+      const dialog = this.createUserDialog()?.nativeElement;
+      if (this.route.snapshot.queryParamMap.get('create') !== '1' || !dialog) {
+        return;
+      }
+      this.openCreateModal(dialog);
+      void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+    });
     effect(() => {
       const err = this.usersQuery.error();
+      this.errorTitle.set('usersLoadFailed');
       this.error.set(err ? problemDetailMessage(err) : null);
     });
   }
@@ -142,9 +188,11 @@ export class AdminUsersComponent {
         next: () => {
           dialog.close();
           invalidateAdminUsers(this.queryClient);
+          invalidateAdminAuditLogs(this.queryClient);
           invalidateAdminRoles(this.queryClient);
+          this.ui.success(this.i18n.t('toastUserCreated'));
         },
-        error: (err) => this.error.set(problemDetailMessage(err)),
+        error: (err) => this.fail('createUserFailed', err),
       });
   }
 
@@ -184,8 +232,10 @@ export class AdminUsersComponent {
           dialog.close();
           this.rolesUser.set(null);
           invalidateAdminUsers(this.queryClient);
+          invalidateAdminAuditLogs(this.queryClient);
+          this.ui.success(this.i18n.t('toastRolesSaved'));
         },
-        error: (err) => this.error.set(problemDetailMessage(err)),
+        error: (err) => this.fail('saveRolesFailed', err),
       });
   }
 
@@ -210,9 +260,16 @@ export class AdminUsersComponent {
           dialog.close();
           this.confirmUser.set(null);
           invalidateAdminUsers(this.queryClient);
+          invalidateAdminAuditLogs(this.queryClient);
+          this.ui.success(this.i18n.t(payload.enabled ? 'toastUserEnabled' : 'toastUserDisabled'));
         },
-        error: (err) => this.error.set(problemDetailMessage(err)),
+        error: (err) => this.fail(payload.enabled ? 'enableUserFailed' : 'disableUserFailed', err),
       });
+  }
+
+  private fail(title: TranslationKey, err: unknown): void {
+    this.errorTitle.set(title);
+    this.error.set(problemDetailMessage(err));
   }
 
   onPageChange(nextPage: number): void {

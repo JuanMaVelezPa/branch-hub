@@ -1,33 +1,18 @@
 <footer
-  class="border-base-300 bg-base-100 border-t px-2 py-2.5 text-base-content sm:px-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+  class="border-t border-rule px-4 py-3 text-sm text-base-content/80 sm:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
 >
-  <div
-    class="mx-auto flex max-w-5xl flex-nowrap items-center justify-center gap-x-2 overflow-x-auto text-xs leading-none sm:text-sm"
-    role="contentinfo"
-  >
-    <span class="shrink-0 text-base-content/80">{{ i18n.t('footerPortfolio') }}</span>
-    <span class="shrink-0 text-base-content/30 select-none" aria-hidden="true">·</span>
-    <span class="shrink-0 font-semibold text-base-content">{{ i18n.t('footerAuthor') }}</span>
-    <span class="shrink-0 text-base-content/30 select-none" aria-hidden="true">·</span>
-    <nav class="inline-flex shrink-0 items-center gap-x-2" [attr.aria-label]="i18n.t('footerContact')">
-      <a
-        class="link link-hover whitespace-nowrap"
-        href="https://jotaeme.dev"
-        target="_blank"
-        rel="noopener noreferrer"
-        >jotaeme.dev</a
-      >
-      <span class="text-base-content/30 select-none" aria-hidden="true">·</span>
-      <a
-        class="link link-hover whitespace-nowrap"
-        href="https://github.com/JuanMaVelezPa"
-        target="_blank"
-        rel="noopener noreferrer"
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+    <span>
+      <span class="font-semibold text-base-content">{{ i18n.t('footerPortfolio') }}</span>
+      {{ i18n.t('footerAuthor') }}
+    </span>
+    <nav class="flex flex-wrap items-center gap-x-4 gap-y-1" [attr.aria-label]="i18n.t('footerContact')">
+      <a class="underline-offset-4 hover:text-primary hover:underline focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="https://jotaeme.dev" target="_blank" rel="noopener noreferrer">jotaeme.dev</a>
+      <a class="underline-offset-4 hover:text-primary hover:underline focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="https://github.com/JuanMaVelezPa" target="_blank" rel="noopener noreferrer"
         >GitHub</a
       >
-      <span class="text-base-content/30 select-none" aria-hidden="true">·</span>
       <a
-        class="link link-hover whitespace-nowrap"
+        class="underline-offset-4 hover:text-primary hover:underline focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         href="https://www.linkedin.com/in/juanmavelezpa"
         target="_blank"
         rel="noopener noreferrer"

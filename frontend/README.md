@@ -1,6 +1,6 @@
 # Branch Hub — Web (Angular)
 
-Angular SPA for Branch Hub (npm package `branch-hub-web`): **login**, **paged branch list**, **branch detail**, **create / edit**, and **deactivate**. It targets the backend contract under `/api/v1` and surfaces **Problem Details** messages when the API returns them.
+Angular SPA for Branch Hub (npm package `branch-hub-web`): **login**, a post-login **dashboard**, the **branch registry** (paged list, detail, add, edit, deactivate), **admin** screens for users, roles and the audit log (SUPER_ADMIN), and **my profile**. It targets the backend contract under `/api/v1` and surfaces **Problem Details** messages when the API returns them. The visual identity is described in [Design direction](#design-direction).
 
 ## Stack
 
@@ -16,10 +16,83 @@ Angular SPA for Branch Hub (npm package `branch-hub-web`): **login**, **paged br
 |-------|---------|
 | `.postcssrc.json` | Registers `@tailwindcss/postcss` exactly as in the Tailwind + Angular docs. |
 | `src/styles.css` | `@import "tailwindcss" source(".")` limits scanning to `src/` (paths are relative to the stylesheet). |
-| `@plugin "daisyui" { themes: … }` | Enables **light** (default) and **dark** (`prefers-color-scheme: dark`). Matches toggling `data-theme` on `<html>` in `public/theme-init.js` and `app-shell`. |
+| `@plugin "daisyui" { themes: false; include: … }` | Emits only the components the app uses. `themes: false` stops DaisyUI from emitting its stock themes, because the two `@plugin "daisyui/theme"` blocks below override **light** (default) and **dark** (`prefersdark`) with the brand tokens. The names stay `light`/`dark`, so `data-theme` on `<html>` (`public/theme-init.js`, settings menu) works unchanged. |
+| `@import "@fontsource-variable/overpass"` | Self-hosted Overpass Variable, served from `'self'` (no CSP change). `@theme { --font-sans }` makes it the base font. |
 | `angular.json` → `styles` | Includes `src/styles.css` so the CLI runs PostCSS on the global stylesheet. |
 
 Production build turns off `inlineCritical` for styles so the main stylesheet is not deferred via the `media="print"` trick (avoids unstyled first paint in some browsers).
+
+## Design direction
+
+SPEC 03 ([specs/03-frontend-visual-redesign.md](../specs/03-frontend-visual-redesign.md)) gave the SPA its own identity. The concept is **wayfinding**: branches are stops on a network, so the visual language borrows from route maps and road signs. That means clear type, one strong route color, an amber signal for exceptions, and quiet surfaces. The one bold element is the route-map drawing on the login page. It draws itself in once, and shows still under `prefers-reduced-motion: reduce`.
+
+### Color tokens
+
+The hex values are the source of truth. `src/styles.css` holds their OKLCH conversions and sets **every** DaisyUI color token in both themes, so a DaisyUI upgrade cannot change a default the app relies on. Templates use the theme-independent `bg-paper`, `bg-surface` and `border-rule` utilities.
+
+| Token | Light | Dark | Role |
+| ----- | ----- | ---- | ---- |
+| Paper | `#F6F7F5` | `#121920` (Night) | Page background |
+| Surface | `#FFFFFF` | `#1A232C` | Panels, tables, sidebar |
+| Ink | `#1C2631` | `#E4E9E6` | Body text, headings |
+| Route green | `#0E7A5E` | `#3FBF94` | `primary`: primary actions, active nav, route lines, links |
+| Signal amber | `#E3A21A` | `#E8B64A` | `warning`: inactive branches. Used as a fill or marker, never as text on Paper |
+| Rule grey | `#D3D9D5` | `#2C3740` | Borders, dividers, table rules |
+
+Contrast (WCAG 2.x ratios, computed from the hex values):
+
+| Theme | Pair | Ratio |
+| ----- | ---- | ----- |
+| Light | Ink on Paper / on Surface | 14.25:1 / 15.32:1 |
+| Light | Route green on Surface / on Paper (links) | 5.30:1 / 4.93:1 |
+| Light | White on Route green (primary button) | 5.30:1 |
+| Light | Ink on Signal amber | 6.89:1 |
+| Dark | Ink on Night / on Surface | 14.42:1 / 12.95:1 |
+| Dark | Route green on Night / on Surface (links) | 7.67:1 / 6.88:1 |
+| Dark | Night on Route green (primary button) | 7.67:1 |
+| Dark | Night on Signal amber | 9.46:1 |
+
+The light-theme amber marker on Paper is 2.07:1. That is acceptable only because the marker never carries status alone: it always sits next to the word "Inactive".
+
+### Type and shape
+
+- **Overpass Variable** for everything. It is the open-source descendant of Highway Gothic, the US road-sign typeface. Its Latin subset has tabular numerals, used through `tabular-nums` for branch codes, counts, dates and table numbers.
+- Scale of about 1.25: 14 / 16 / 20 / 25 / 31 px. Body is 16 px, tables and secondary text 14 px. Weights: 400 body, 600 headings and active nav, 700 only for the dashboard numbers.
+- Radii follow hierarchy: inputs and buttons small (`--radius-field`), panels and modals medium (`--radius-box`), badges pill (`--radius-selector`). `--depth: 0`, so panels have no shadows.
+
+### Design rules
+
+Every template follows these. Check new screens against them.
+
+1. **Structure carries meaning.** Route-line markers appear only on real sequences: the dashboard activity timeline and the login drawing. Borders separate regions.
+2. **No decorative chrome.** No gradients, all caps, tracked-out or eyebrow labels, `→` on links, monospace data labels, or `A · B · C` meta strings.
+3. **Sentence case** for every heading, button, label and menu item, in `en` and `es`.
+4. **Actions keep their verb in the toast.** "Add branch" → "Branch added", "Save changes" → "Changes saved", "Deactivate branch" → "Branch deactivated", "Create user" → "User created", "Save roles" → "Roles saved", "Disable user" → "User disabled".
+5. **Empty and error states give direction.** Empty states name the next action ("No branches yet. Add the first one."). Errors say what failed and what to do ("Couldn't load branches. Check your connection and retry."), without apologizing.
+6. **Motion** happens only in response to the user (drawer, sidebar collapse, modal), except the login drawing, and respects reduced motion.
+7. **Status uses color plus text** (`app-status-marker`): an amber marker plus "Inactive".
+
+### Shell and layout
+
+| Topic | Behavior |
+| ----- | -------- |
+| **Sidebar** (`lg` and up) | Dashboard, Branches, Admin (SUPER_ADMIN only) and Profile, each with an icon and a route-green active bar. It collapses to an icon rail; rail items keep an `aria-label` and a tooltip. The state is saved under `branch-hub.pref.v1.sidebar` (`expanded` default, or `collapsed`; unknown values fall back to `expanded`). |
+| **Drawer** (below `lg`) | The same nav in a DaisyUI drawer, opened from the topbar hamburger (`drawer-toggle`). Choosing an item navigates and closes it. |
+| **Topbar** | Page title from the route's `data['titleKey']`, the account/settings menu and the logout action. |
+| **Login** | Split screen from `md` up: the brand panel (route-map drawing, logo, tagline) next to the form card. Below `md`, only the logo and the form. The settings menu stays reachable at every width. |
+| **Dashboard** (`/dashboard`, post-login home; `/` redirects here) | A summary sentence built from live counts ("{n} branches in the registry.", plus "{n} user accounts." for SUPER_ADMIN), the quick actions "Add branch" and "Create user" (SUPER_ADMIN, opens the create-user modal), and, for SUPER_ADMIN, the latest 5 audit events as a timeline. It reuses the list query keys, so mutations keep it fresh. Admin queries are `enabled` only for SUPER_ADMIN, so an APP_ADMIN never calls `/api/v1/admin/**`. |
+| **Tables on phones** | Below `sm`, the branches list, admin users and audit log render one card per row, with a sort select in place of the column headers. The full table shows from `sm` up. |
+| **Sort headers** | Only the active column shows its arrow. Idle columns show the sort hint on hover or keyboard focus. |
+| **Logo** | `shared/ui/logo` draws the branching-node mark in `currentColor`. The same mark is `public/favicon.svg`. |
+
+### Screenshots for design review
+
+`e2e/screenshots.spec.ts` captures every screen at 390 px and 1280 px, in light and dark, into `e2e/__screenshots__/` (gitignored). It makes no pixel-diff assertions, because font rendering differs across hosts; review the images against the rules above. It needs the Compose stack and a SUPER_ADMIN login (the same `E2E_*` variables as the smoke tests), and adds one branch only when the registry is empty.
+
+```bash
+npm run test:e2e:screenshots
+DOCS_IMAGES=1 npm run test:e2e:screenshots   # also refreshes the root README images (login, dashboard, branches, admin users) in ../docs/images/
+```
 
 ## Tooling versions (last reviewed)
 
@@ -105,7 +178,7 @@ Defaults:
 - `E2E_USER=admin@example.com`
 - `E2E_PASSWORD=Admin_ChangeMe_2026!`
 
-The smoke verifies: login → branches list → create branch → detail → edit → deactivate. The admin smoke creates a user from the admin area.
+The smoke verifies: login → dashboard → branches list (through `nav-branches`) → add branch → detail → edit → deactivate. The admin smoke signs in, opens the admin area through `nav-admin` and creates a user. Both run at the Desktop Chrome viewport, so the full tables render. The screenshot capture is described in [Screenshots for design review](#screenshots-for-design-review).
 
 Playwright does not support every Linux distribution (for example Ubuntu 26.04). There, run the suites in the official image that matches the installed version, against the Compose stack:
 
@@ -113,14 +186,17 @@ Playwright does not support every Linux distribution (for example Ubuntu 26.04).
 docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$PWD":/work -w /work -e E2E_BASE_URL=http://localhost:8080 -e E2E_PASSWORD \
   mcr.microsoft.com/playwright:v1.59.1-noble \
-  sh -c "npm run test:e2e:smoke && npm run test:e2e:admin-smoke"
+  sh -c "npm run test:e2e:smoke && npm run test:e2e:admin-smoke && npm run test:e2e:screenshots"
 ```
 
 ## i18n (EN/ES)
 
 - Runtime i18n is implemented with a lightweight **`I18nService`** (`core/i18n`), **not** `@ngx-translate/core` and **not** Angular compile-time `$localize` / XLF extraction.
-- Locale is persisted via `UserPreferencesService` (`branch-hub.pref.v1.locale`), and can be switched from login and shell headers.
-- Supported locales: `en`, `es`.
+- The dictionaries live in `core/i18n/`. `translations.ts` holds `en`, which defines the key set and ships in the initial bundle. `translations.es.ts` holds `es`, typed against it, so a missing or extra Spanish key fails the build. `es` is lazy-loaded: `setLocale` switches only once it has arrived, and the app initializer waits for it when Spanish is stored, so the first paint is never in the wrong language. `translations.spec.ts` also checks that both have the same keys and the same `{placeholders}`.
+- There is no plural support. Sentences with counts use separate `…One` / `…Other` keys chosen in the component (for example `dashboardBranchesOne` / `dashboardBranchesOther`), never string concatenation, so Spanish grammar stays correct.
+- Audit `action` codes map to readable labels in `features/admin/audit-action-label.ts`, shared by the audit log and the dashboard timeline. Unknown codes fall back to the raw code.
+- Locale is persisted via `UserPreferencesService` (`branch-hub.pref.v1.locale`), and can be switched from the settings menu on the login page and in the shell.
+- Supported locales: `en`, `es`. Copy follows the [design rules](#design-rules).
 
 **Why no ngx-translate?** For this portfolio scope, a small dictionary keeps dependencies low and the contract easy to explain in interviews. See [docs/security.md §2](../docs/security.md#2-internationalization--do-we-use-angular-translate--ngx-translate) for trade-offs.
 
@@ -130,9 +206,10 @@ Extra dictionary keys used by the shell: e.g. **`browserTabBrand`** (suffix for 
 
 | Topic | Implementation |
 |-------|----------------|
-| **Favicon** | `public/favicon.svg` — linked from `src/index.html` (SVG only; avoids browsers picking a stale default `.ico`). |
+| **Favicon** | `public/favicon.svg` — the logo mark, linked from `src/index.html` (SVG only; avoids browsers picking a stale default `.ico`). |
 | **Tab title** | `index.html` starts with **Branch Hub**. `app.ts`: on each `NavigationEnd`, reads the leaf route’s `data['titleKey']` and sets `title` to `{translated title} · {browserTabBrand}` ("Branch Hub"); reacts to locale changes. |
-| **Account menu** | `app-settings-dropdown`: in the shell, `variant="account"` shows **user icon + camelCase username** (`displayUsername` pipe) and bundles **language**, **theme**, and **logout** in one dropdown. Login keeps the default **`variant="gear"`** (icon only). |
+| **Account menu** | `app-settings-dropdown`: in the topbar, `variant="account"` shows **user icon + camelCase username** (`displayUsername` pipe) and bundles **language**, **theme**, and **logout**. Login keeps the default **`variant="gear"`** (icon only). |
+| **Feedback** | `UiFeedbackService` toasts confirm every successful mutation with the action's verb (see design rule 4). Errors stay inline (`app-inline-alert`) with a title that names what failed. |
 | **Footer** | `shared/footer` — project name (**`footerPortfolio`**) + **`footerAuthor`** + links to jotaeme.dev, GitHub and LinkedIn. |
 
 ## Reusable loading (shared UI)
@@ -185,12 +262,13 @@ Services use `apiUrl(API_BASE_URL, ApiPaths.…)` plus the types above so the HT
 ```text
 src/app/
   core/           # Auth, interceptors, preferences, i18n, `api/api-paths`, `models`, branch API client
-  features/       # auth/login; branches list, create, detail, edit (.ts + .html)
-  layout/         # App shell (nav, account menu, router-outlet) — .ts + .html
+  features/       # auth (login + route-map art), dashboard, branches, admin, account (.ts + .html)
+  layout/         # App shell: sidebar, drawer, topbar, router-outlet — .ts + .html
   shared/
     footer/       # Site footer; reused in shell + login
     pipes/        # e.g. `displayUsername` (camelCase label)
-    ui/           # inline-alert, icons, page-nav, settings/account dropdown, loading-*
+    ui/           # logo, icons, inline-alert, status-marker, sort-select, sortable-th, page-nav, settings dropdown, loading-*
+    util/         # table-sort, media-query, relative-time
 ```
 
 ## Documentation

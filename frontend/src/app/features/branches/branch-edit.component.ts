@@ -12,6 +12,7 @@ import {
   invalidateBranchListQueries,
 } from '../../core/branches/branch-query.keys';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { UiFeedbackService } from '../../core/ui-feedback/ui-feedback.service';
 import { problemDetailMessage } from '../../core/util/http-error';
 import { BusySectionComponent } from '../../shared/ui/busy-section/busy-section.component';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
@@ -37,6 +38,7 @@ export class BranchEditComponent {
   private readonly branches = inject(BranchApiService);
   private readonly queryClient = inject(QueryClient);
   protected readonly i18n = inject(I18nService);
+  private readonly ui = inject(UiFeedbackService);
 
   private readonly idSignal = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? '')),
@@ -109,6 +111,7 @@ export class BranchEditComponent {
         next: () => {
           invalidateBranchListQueries(this.queryClient);
           invalidateBranchDetailQuery(this.queryClient, id);
+          this.ui.success(this.i18n.t('toastChangesSaved'));
           void this.router.navigate(['/branches', id]);
         },
         error: (err) => this.saveError.set(problemDetailMessage(err)),

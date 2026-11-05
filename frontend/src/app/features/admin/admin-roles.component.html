@@ -1,32 +1,30 @@
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-5">
   <app-admin-subnav />
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <h1 class="text-2xl font-semibold">{{ i18n.t('adminRolesTitle') }}</h1>
-  </div>
+  <h1 class="text-2xl font-semibold">{{ i18n.t('adminRolesTitle') }}</h1>
 
-  <app-inline-alert [message]="error()" variant="warning" [title]="i18n.t('warningTitle')" />
+  <app-inline-alert [message]="error()" variant="error" [title]="i18n.t('rolesLoadFailed')" />
 
   <app-loading-state [active]="loading()" [label]="i18n.t('loadingRoles')" size="md" skeleton="table" />
 
   @if (!loading()) {
     @if (roles().length === 0) {
-      <div class="rounded-lg border border-dashed border-base-300 bg-base-100/60 px-6 py-10 text-center text-sm text-base-content/60">
+      <div class="rounded-box border border-rule bg-surface p-6">
         {{ i18n.t('emptyRoles') }}
       </div>
     } @else {
-      <div class="overflow-x-auto rounded-lg border border-base-300/80 bg-base-100 shadow-sm">
-        <table class="table table-zebra">
+      <div class="overflow-x-auto rounded-box border border-rule bg-surface">
+        <table class="table">
           <thead>
-            <tr>
-              <th scope="col" class="align-bottom">ID</th>
-              <th scope="col" class="align-bottom">{{ i18n.t('name') }}</th>
+            <tr class="border-rule bg-paper text-base-content">
+              <th scope="col">{{ i18n.t('name') }}</th>
+              <th scope="col">{{ i18n.t('roleId') }}</th>
             </tr>
           </thead>
           <tbody>
             @for (r of roles(); track r.id) {
-              <tr>
-                <td class="font-mono text-xs">{{ r.id }}</td>
-                <td class="font-mono text-sm">{{ r.name }}</td>
+              <tr class="border-rule">
+                <td class="font-semibold">{{ r.name }}</td>
+                <td class="text-sm text-base-content/80 tabular-nums">{{ r.id }}</td>
               </tr>
             }
           </tbody>
