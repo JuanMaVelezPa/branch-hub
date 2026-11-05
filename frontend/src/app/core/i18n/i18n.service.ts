@@ -1,239 +1,13 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { UserPreferencesService } from '../preferences/user-preferences.service';
+import { en, type Dictionary, type TranslationKey } from './translations';
 
 export type AppLocale = 'en' | 'es';
-export type TranslationKey = keyof typeof dictionary.en;
-
-const dictionary = {
-  en: {
-    appTitle: 'Branches',
-    browserTabBrand: 'Branch Hub',
-    logout: 'Logout',
-    loginTitle: 'Sign in',
-    sessionTitle: 'Session',
-    sessionExpired: 'Your session expired. Please sign in again.',
-    signInFailed: 'Sign-in failed',
-    invalidEmail: 'Invalid email format',
-    forbiddenAdmin: 'Forbidden: missing SUPER_ADMIN role.',
-    username: 'Email',
-    password: 'Password',
-    login: 'Login',
-    signingIn: 'Signing in…',
-    branchesTitle: 'Branches',
-    newBranch: 'New branch',
-    warningTitle: 'Something went wrong',
-    loadingBranches: 'Loading branches…',
-    emptyBranches: 'No branches yet. Create one to get started.',
-    code: 'Code',
-    name: 'Name',
-    city: 'City',
-    active: 'Active',
-    branchInactive: 'Inactive',
-    yes: 'Yes',
-    no: 'No',
-    back: 'Back',
-    newBranchTitle: 'New branch',
-    createFailed: 'Could not create branch',
-    codeHint: 'Letters, numbers, underscore, hyphen',
-    savingBranch: 'Saving branch…',
-    create: 'Create',
-    perPage: 'Per page',
-    prev: 'Prev',
-    next: 'Next',
-    noItems: 'No items',
-    pageSummary: 'Page {page} of {pages} · {total} total',
-    language: 'Language',
-    languageEnglish: 'English',
-    languageSpanish: 'Spanish',
-    themeToLight: 'Light theme',
-    themeToDark: 'Dark theme',
-    settings: 'Settings',
-    appearance: 'Appearance',
-    themeLight: 'Light',
-    themeDark: 'Dark',
-    footerPortfolio: 'Branch Hub',
-    footerAuthor: 'by Juan Manuel Vélez Parra',
-    footerContact: 'Contact links',
-    routeError: 'Unexpected navigation error. Please retry.',
-    sessionExpiredToast: 'Session expired. Please sign in again.',
-    branchDetailTitle: 'Branch details',
-    loadingBranch: 'Loading branch…',
-    branchLoadFailed: 'Could not load branch',
-    branchNotFound: 'Branch not found',
-    editBranch: 'Edit',
-    editBranchTitle: 'Edit branch',
-    codeReadOnlyHint: 'Code cannot be changed after creation.',
-    saveChanges: 'Save changes',
-    updateFailed: 'Could not update branch',
-    savingChanges: 'Saving…',
-    deactivate: 'Deactivate',
-    deactivateModalTitle: 'Deactivate branch?',
-    deactivateConfirm: 'This branch will be marked inactive. You can still view it in the list.',
-    cancel: 'Cancel',
-    deactivateFailed: 'Could not deactivate branch',
-    createdAtLabel: 'Created',
-    updatedAtLabel: 'Updated',
-    tableSortAriaInactive: '{label}, not sorted. Activate to sort ascending.',
-    tableSortAriaActiveAsc: '{label}, sorted ascending.',
-    tableSortAriaActiveDesc: '{label}, sorted descending.',
-    admin: 'Admin',
-    adminUsersTitle: 'Admin users',
-    adminRolesTitle: 'Admin roles',
-    adminAuditTitle: 'IAM audit log',
-    adminTabUsers: 'Users',
-    adminTabRoles: 'Roles',
-    adminTabAudit: 'Audit',
-    loadingAuditLogs: 'Loading audit log…',
-    emptyAuditLogs: 'No IAM audit entries yet.',
-    auditColTime: 'Time',
-    auditColAction: 'Action',
-    auditColActor: 'Actor',
-    auditColTarget: 'Target user',
-    auditColMetadata: 'Metadata',
-    users: 'Users',
-    roles: 'Roles',
-    email: 'Email',
-    enabled: 'Enabled',
-    createdAt: 'Created',
-    loadingUsers: 'Loading users…',
-    emptyUsers: 'No users yet.',
-    loadingRoles: 'Loading roles…',
-    emptyRoles: 'No roles yet.',
-    createUser: 'Create user',
-    saving: 'Saving…',
-    enable: 'Enable',
-    disable: 'Disable',
-    editRoles: 'Edit roles',
-    passwordRequirementsTitle: 'Password requirements',
-    passwordRuleLength: '{min}-{max} characters',
-    passwordRuleUpper: 'At least one uppercase letter',
-    passwordRuleLower: 'At least one lowercase letter',
-    passwordRuleNumber: 'At least one number',
-    passwordRuleSpecial: 'At least one special character',
-    myProfileNav: 'Profile',
-    myProfileTitle: 'My profile',
-    loadingProfile: 'Loading profile…',
-    profileLoadFailed: 'Could not load profile',
-    profileRoles: 'Roles',
-    profileUserId: 'User id',
-  },
-  es: {
-    appTitle: 'Sucursales',
-    browserTabBrand: 'Branch Hub',
-    logout: 'Cerrar sesión',
-    loginTitle: 'Iniciar sesión',
-    sessionTitle: 'Sesión',
-    sessionExpired: 'Tu sesión expiró. Inicia sesión de nuevo.',
-    signInFailed: 'Error al iniciar sesión',
-    invalidEmail: 'Formato de correo inválido',
-    forbiddenAdmin: 'No autorizado: falta el rol SUPER_ADMIN.',
-    username: 'Correo',
-    password: 'Contraseña',
-    login: 'Entrar',
-    signingIn: 'Ingresando…',
-    branchesTitle: 'Sucursales',
-    newBranch: 'Nueva sucursal',
-    warningTitle: 'Algo salió mal',
-    loadingBranches: 'Cargando sucursales…',
-    emptyBranches: 'Aún no hay sucursales. Crea una para comenzar.',
-    code: 'Código',
-    name: 'Nombre',
-    city: 'Ciudad',
-    active: 'Activa',
-    branchInactive: 'Inactiva',
-    yes: 'Sí',
-    no: 'No',
-    back: 'Volver',
-    newBranchTitle: 'Nueva sucursal',
-    createFailed: 'No se pudo crear la sucursal',
-    codeHint: 'Letras, números, guion bajo, guion medio',
-    savingBranch: 'Guardando sucursal…',
-    create: 'Crear',
-    perPage: 'Por página',
-    prev: 'Anterior',
-    next: 'Siguiente',
-    noItems: 'Sin elementos',
-    pageSummary: 'Página {page} de {pages} · {total} total',
-    language: 'Idioma',
-    languageEnglish: 'Inglés',
-    languageSpanish: 'Español',
-    themeToLight: 'Tema claro',
-    themeToDark: 'Tema oscuro',
-    settings: 'Ajustes',
-    appearance: 'Apariencia',
-    themeLight: 'Claro',
-    themeDark: 'Oscuro',
-    footerPortfolio: 'Branch Hub',
-    footerAuthor: 'por Juan Manuel Vélez Parra',
-    footerContact: 'Enlaces de contacto',
-    routeError: 'Error de navegación inesperado. Inténtalo de nuevo.',
-    sessionExpiredToast: 'La sesión expiró. Inicia sesión de nuevo.',
-    branchDetailTitle: 'Detalle de sucursal',
-    loadingBranch: 'Cargando sucursal…',
-    branchLoadFailed: 'No se pudo cargar la sucursal',
-    branchNotFound: 'Sucursal no encontrada',
-    editBranch: 'Editar',
-    editBranchTitle: 'Editar sucursal',
-    codeReadOnlyHint: 'El código no se puede cambiar tras crearla.',
-    saveChanges: 'Guardar cambios',
-    updateFailed: 'No se pudo actualizar la sucursal',
-    savingChanges: 'Guardando…',
-    deactivate: 'Desactivar',
-    deactivateModalTitle: '¿Desactivar sucursal?',
-    deactivateConfirm: 'La sucursal quedará marcada como inactiva. Seguirá visible en el listado.',
-    cancel: 'Cancelar',
-    deactivateFailed: 'No se pudo desactivar la sucursal',
-    createdAtLabel: 'Creada',
-    updatedAtLabel: 'Actualizada',
-    tableSortAriaInactive: '{label}, sin ordenar. Activa para orden ascendente.',
-    tableSortAriaActiveAsc: '{label}, orden ascendente.',
-    tableSortAriaActiveDesc: '{label}, orden descendente.',
-    admin: 'Admin',
-    adminUsersTitle: 'Administración de usuarios',
-    adminRolesTitle: 'Administración de roles',
-    adminAuditTitle: 'Registro de auditoría IAM',
-    adminTabUsers: 'Usuarios',
-    adminTabRoles: 'Roles',
-    adminTabAudit: 'Auditoría',
-    loadingAuditLogs: 'Cargando auditoría…',
-    emptyAuditLogs: 'Aún no hay entradas de auditoría IAM.',
-    auditColTime: 'Hora',
-    auditColAction: 'Acción',
-    auditColActor: 'Actor',
-    auditColTarget: 'Usuario objetivo',
-    auditColMetadata: 'Metadatos',
-    users: 'Usuarios',
-    roles: 'Roles',
-    email: 'Correo',
-    enabled: 'Habilitado',
-    createdAt: 'Creada',
-    loadingUsers: 'Cargando usuarios…',
-    emptyUsers: 'Aún no hay usuarios.',
-    loadingRoles: 'Cargando roles…',
-    emptyRoles: 'Aún no hay roles.',
-    createUser: 'Crear usuario',
-    saving: 'Guardando…',
-    enable: 'Habilitar',
-    disable: 'Deshabilitar',
-    editRoles: 'Editar roles',
-    passwordRequirementsTitle: 'Requisitos de contraseña',
-    passwordRuleLength: '{min}-{max} caracteres',
-    passwordRuleUpper: 'Al menos una letra mayúscula',
-    passwordRuleLower: 'Al menos una letra minúscula',
-    passwordRuleNumber: 'Al menos un número',
-    passwordRuleSpecial: 'Al menos un carácter especial',
-    myProfileNav: 'Perfil',
-    myProfileTitle: 'Mi perfil',
-    loadingProfile: 'Cargando perfil…',
-    profileLoadFailed: 'No se pudo cargar el perfil',
-    profileRoles: 'Roles',
-    profileUserId: 'Id de usuario',
-  },
-} as const;
+export type { TranslationKey };
 
 /** Route `data.titleKey` guard — avoids passing arbitrary strings into {@link I18nService#t}. */
 export function isTranslationKey(value: unknown): value is TranslationKey {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(dictionary.en, value);
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(en, value);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -242,26 +16,34 @@ export class I18nService {
   readonly locale = this.localeSignal.asReadonly();
   readonly isSpanish = computed(() => this.localeSignal() === 'es');
 
+  /** `en` ships in the initial bundle; other locales are loaded on first use. */
+  private readonly dictionaries: Partial<Record<AppLocale, Dictionary>> = { en };
+
   constructor(private readonly prefs: UserPreferencesService) {}
 
-  initialize(): void {
+  /** Run from the app initializer: waits for a stored non-English dictionary so the first paint is translated. */
+  initialize(): Promise<void> {
     const stored = this.prefs.getLocale();
-    if (stored === 'es' || stored === 'en') {
-      this.setLocale(stored);
-      return;
-    }
     // Product decision: default locale is always English unless user explicitly changes it.
-    this.setLocale('en');
+    return this.setLocale(stored === 'es' ? 'es' : 'en');
   }
 
-  setLocale(locale: AppLocale): void {
+  /** Switches only after the dictionary is loaded, so the UI never mixes languages. */
+  async setLocale(locale: AppLocale): Promise<void> {
+    await this.loadDictionary(locale);
     this.localeSignal.set(locale);
     this.prefs.setLocale(locale);
     document.documentElement.setAttribute('lang', locale);
   }
 
+  private async loadDictionary(locale: AppLocale): Promise<void> {
+    if (!this.dictionaries[locale]) {
+      this.dictionaries[locale] = (await import('./translations.es')).es;
+    }
+  }
+
   t(key: TranslationKey, vars?: Record<string, string | number>): string {
-    let text: string = dictionary[this.localeSignal()][key];
+    let text: string = (this.dictionaries[this.localeSignal()] ?? en)[key];
     if (!vars) {
       return text;
     }

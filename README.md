@@ -14,13 +14,17 @@ A full-stack app to manage company branches, built like a production system: Spr
 
 ## Screenshots
 
-| Login | Branches |
-| ----- | -------- |
-| ![Login page](docs/images/login.png) | ![Paged branch list](docs/images/branches.png) |
+| Login | Dashboard |
+| ----- | --------- |
+| ![Login page with the route-map drawing](docs/images/login.png) | ![Dashboard with the registry summary and recent activity](docs/images/dashboard.png) |
 
-| Admin: users | Grafana |
-| ------------ | ------- |
-| ![Admin user management](docs/images/admin-users.png) | ![Grafana observability dashboard](docs/images/grafana.png) |
+| Branches | Admin: users |
+| -------- | ------------ |
+| ![Paged branch list](docs/images/branches.png) | ![Admin user management](docs/images/admin-users.png) |
+
+| Grafana |
+| ------- |
+| ![Grafana observability dashboard](docs/images/grafana.png) |
 
 ## Architecture
 

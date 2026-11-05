@@ -8,9 +8,9 @@ test('smoke: login -> admin users -> create user', async ({ page }) => {
   await page.getByTestId('login-password').fill(process.env.E2E_PASSWORD ?? 'Admin_ChangeMe_2026!');
   await page.getByTestId('login-submit').click();
 
-  await expect(page).toHaveURL(/\/branches$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
 
-  await page.getByRole('link', { name: /admin/i }).click();
+  await page.getByTestId('nav-admin').click();
   await expect(page).toHaveURL(/\/admin\/users$/);
 
   await page.getByTestId('admin-create-user-open').click();

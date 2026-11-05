@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import type { LocaleCode, ThemeMode } from './preference-keys';
+import type { LocaleCode, SidebarMode, ThemeMode } from './preference-keys';
 import { PreferenceKeys } from './preference-keys';
 
 /**
@@ -56,5 +56,15 @@ export class LocalPreferenceStore {
 
   setLocale(code: LocaleCode): void {
     this.setString(PreferenceKeys.locale, code);
+  }
+
+  /** Returns null for a missing or unknown value; callers apply the `expanded` default. */
+  getSidebarMode(): SidebarMode | null {
+    const v = this.getString(PreferenceKeys.sidebar);
+    return v === 'expanded' || v === 'collapsed' ? v : null;
+  }
+
+  setSidebarMode(mode: SidebarMode): void {
+    this.setString(PreferenceKeys.sidebar, mode);
   }
 }

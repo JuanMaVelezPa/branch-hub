@@ -10,17 +10,24 @@ import { problemDetailMessage } from '../../core/util/http-error';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state/loading-state.component';
 import { PageNavComponent } from '../../shared/ui/page-nav/page-nav.component';
+import { IconComponent } from '../../shared/ui/icon/icon.component';
+import { SortSelectComponent, type SortOption } from '../../shared/ui/sort-select/sort-select.component';
 import { SortableThComponent } from '../../shared/ui/sortable-th/sortable-th.component';
+import { StatusMarkerComponent } from '../../shared/ui/status-marker/status-marker.component';
+import { SM_UP, injectMediaQuery } from '../../shared/util/media-query';
 import { formatSortQuery, toggleTableSort, type SortDirection } from '../../shared/util/table-sort';
 
 @Component({
   selector: 'app-branch-list',
   imports: [
     RouterLink,
+    IconComponent,
     InlineAlertComponent,
     LoadingStateComponent,
     PageNavComponent,
+    SortSelectComponent,
     SortableThComponent,
+    StatusMarkerComponent,
   ],
   templateUrl: './branch-list.component.html',
 })
@@ -41,6 +48,21 @@ export class BranchListComponent {
       queryFn: () => lastValueFrom(this.branches.list(this.page(), this.pageSize(), sort)),
     };
   });
+
+  /** Table from `sm` up, stacked cards below. */
+  protected readonly wide = injectMediaQuery(SM_UP);
+
+  /** Same columns as the table headers, for the card view's sort control. */
+  protected readonly sortOptions = computed((): SortOption[] => [
+    { key: 'code', label: this.i18n.t('code') },
+    { key: 'name', label: this.i18n.t('name') },
+    { key: 'city', label: this.i18n.t('city') },
+    { key: 'active', label: this.i18n.t('status') },
+  ]);
+
+  protected statusLabel(b: Branch): string {
+    return b.isActive ? this.i18n.t('active') : this.i18n.t('branchInactive');
+  }
 
   readonly loading = computed(() => this.listQuery.isPending());
   readonly error = computed(() => {

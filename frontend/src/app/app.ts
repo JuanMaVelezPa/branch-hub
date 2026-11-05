@@ -3,7 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { filter, map } from 'rxjs';
-import { I18nService, isTranslationKey } from './core/i18n/i18n.service';
+import { I18nService } from './core/i18n/i18n.service';
+import { activeTitleKey } from './core/routing/route-title';
 import { GlobalToastComponent } from './shared/ui/global-toast/global-toast.component';
 
 @Component({
@@ -35,13 +36,7 @@ export class App {
   }
 
   private syncDocumentTitle(): void {
-    let route = this.router.routerState.root;
-    while (route.firstChild) {
-      route = route.firstChild;
-    }
-    const raw = route.snapshot.data['titleKey'];
-    const key = isTranslationKey(raw) ? raw : 'appTitle';
-    const head = this.i18n.t(key);
+    const head = this.i18n.t(activeTitleKey(this.router));
     this.title.setTitle(`${head} · ${this.i18n.t('browserTabBrand')}`);
   }
 }

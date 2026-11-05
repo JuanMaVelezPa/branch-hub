@@ -24,7 +24,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideAppInitializer(() => {
       inject(UserPreferencesService).initialize();
-      inject(I18nService).initialize();
+      return inject(I18nService).initialize();
     }),
     provideRouter(
       routes,

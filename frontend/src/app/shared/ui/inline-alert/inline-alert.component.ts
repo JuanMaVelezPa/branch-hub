@@ -2,6 +2,8 @@ import { Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-inline-alert',
+  // Renders nothing when there is no message; hide the empty host so parent flex gaps collapse.
+  host: { class: 'block empty:hidden' },
   templateUrl: './inline-alert.component.html',
 })
 export class InlineAlertComponent {
@@ -20,7 +22,7 @@ export class InlineAlertComponent {
 
   protected readonly boxClass = computed(() => {
     const v = this.variant();
-    const base = 'alert border text-sm shadow-sm';
+    const base = 'alert items-start border text-sm';
     if (v === 'warning') {
       return `${base} alert-warning border-warning/30`;
     }

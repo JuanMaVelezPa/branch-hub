@@ -1,15 +1,15 @@
 @if (ui.toasts().length > 0) {
-  <div class="toast toast-end toast-top z-50 pt-[max(0.5rem,env(safe-area-inset-top,0px))]">
+  <div class="toast toast-end toast-top z-50 pt-[max(0.5rem,env(safe-area-inset-top,0px))]" aria-live="polite">
     @for (item of ui.toasts(); track item.id) {
-      <div class="alert shadow-md" [class]="toastClass(item)">
-        <span>{{ item.message }}</span>
+      <div role="status" class="alert flex max-w-sm items-start gap-3 border text-sm" [class]="toastClass(item)">
+        <span class="min-w-0 flex-1">{{ item.message }}</span>
         <button
           type="button"
-          class="btn btn-ghost btn-xs"
-          aria-label="Dismiss"
+          class="btn btn-ghost btn-square btn-xs"
+          [attr.aria-label]="i18n.t('dismiss')"
           (click)="ui.dismiss(item.id)"
         >
-          ✕
+          <app-icon name="close" sizeClass="h-4 w-4" />
         </button>
       </div>
     }

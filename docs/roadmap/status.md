@@ -83,7 +83,8 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 
 ### Progress note (recent delivery)
 
-- **SPEC 02 — Flyway owns the schema** (last done item): added `spring-boot-starter-flyway`; one frozen baseline `V1__init_schema.sql`; `ddl-auto=validate` in every profile; Testcontainers 2.x with `@ServiceConnection` and one shared PostgreSQL for every Spring context test (no H2); `FlywayMigrationIntegrationTest`. Local stacks need one `docker compose down -v`. **Next: CI with GitHub Actions** (now unblocked).
+- **SPEC 03 — Frontend visual redesign** (last done item): "wayfinding" identity for the SPA, frontend only (no API change). DaisyUI `light`/`dark` overridden with brand tokens (route green, signal amber, paper/ink); self-hosted Overpass Variable; branching-node logo reused as the favicon; sidebar + topbar shell (persisted collapse under `branch-hub.pref.v1.sidebar`, drawer below `lg`); split-screen login with a route-map drawing; new **`/dashboard`** post-login home (live summary sentence, quick actions, SUPER_ADMIN activity timeline); card view below `sm` for the branches, users and audit tables; copy pass (sentence case, matching action and toast verbs, directive empty and error states) with a unit spec for the `en`/`es` key sets; `npm run test:e2e:screenshots` for design review. See [frontend/README.md](../../frontend/README.md#design-direction).
+- **SPEC 02 — Flyway owns the schema**: added `spring-boot-starter-flyway`; one frozen baseline `V1__init_schema.sql`; `ddl-auto=validate` in every profile; Testcontainers 2.x with `@ServiceConnection` and one shared PostgreSQL for every Spring context test (no H2); `FlywayMigrationIntegrationTest`. Local stacks need one `docker compose down -v`. **Next: CI with GitHub Actions** (now unblocked).
 - **SPEC 01 — rename to Branch Hub and publish readiness**: renamed the project to `branch-hub` across code (package `dev.jotaeme.branchhub`), database (`branchhub`), Compose, Prometheus, Grafana, SPA and Postman; MIT license; [architecture](../architecture.md) and [getting started](../getting-started.md) docs; roadmap rewritten as project docs. Fixed during its health pass: the Kafka consumer group never formed on the single Compose broker (internal-topic replication factor), the p95 and failed-notifications panels had no data, failed logins were not counted, and the admin tabs were unstyled (see `CHANGELOG.md`). Also found that Flyway never ran on Boot 4 (missing `spring-boot-starter-flyway`); fixed in **SPEC 02**.
 - **v1.1 closure:** **`GET /api/v1/me`** (`MeController`); SPA **`/me`** + shell **Profile** link; Postman **1.05 Me**; TanStack `me` queries cleared on login/logout.
 - **v1.2 closure:** `@EnableMethodSecurity` + `@PreAuthorize("hasRole('SUPER_ADMIN')")` on admin controllers; **`GET /api/v1/admin/audit-logs`** (paged); admin UI subnav + **Audit** tab with TanStack Query.
@@ -93,7 +94,7 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 - List endpoints: default `size` aligned to **10** in `PageRequestParams` (matches Admin UI / branches list).
 - **F3 (wave 3):** TanStack Query — branches **and admin users/roles** use query keys + cached reads (`staleTime` 5 min, `refetchOnWindowFocus`) with invalidation on mutations.
 - Lazy loading: `admin` and `branches` route-level `loadChildren`.
-- Delivery tuning: DaisyUI `include` subset, `nginx.conf` gzip + long-cache hashed assets + no-store `index.html`, Angular `initial` budget (~`560kB` warning).
+- Delivery tuning: DaisyUI `include` subset, `nginx.conf` gzip + long-cache hashed assets + no-store `index.html`, Angular `initial` budget (`600kB` warning since SPEC 03).
 
 ---
 
@@ -150,6 +151,9 @@ cd frontend && npm ci && npm run build && npm test
 
 # E2E smoke against the Compose stack (from frontend/; see docs/getting-started.md)
 npm run test:e2e:smoke && npm run test:e2e:admin-smoke
+
+# Design review screenshots (390/1280 px × light/dark, into frontend/e2e/__screenshots__/)
+npm run test:e2e:screenshots
 ```
 
 ## Git workflow

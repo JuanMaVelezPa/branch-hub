@@ -7,15 +7,17 @@ import { QueryClient, injectQuery } from '@tanstack/angular-query-experimental';
 import { finalize, lastValueFrom, map } from 'rxjs';
 import { BranchApiService } from '../../core/branches/branch-api.service';
 import { branchQueryKeys, invalidateBranchListQueries } from '../../core/branches/branch-query.keys';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, type TranslationKey } from '../../core/i18n/i18n.service';
 import type { Branch } from '../../core/models/api-types';
+import { UiFeedbackService } from '../../core/ui-feedback/ui-feedback.service';
 import { problemDetailMessage } from '../../core/util/http-error';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state/loading-state.component';
+import { StatusMarkerComponent } from '../../shared/ui/status-marker/status-marker.component';
 
 @Component({
   selector: 'app-branch-detail',
-  imports: [RouterLink, InlineAlertComponent, LoadingStateComponent, DatePipe],
+  imports: [RouterLink, InlineAlertComponent, LoadingStateComponent, DatePipe, StatusMarkerComponent],
   templateUrl: './branch-detail.component.html',
 })
 export class BranchDetailComponent {
@@ -24,6 +26,7 @@ export class BranchDetailComponent {
   private readonly branches = inject(BranchApiService);
   private readonly queryClient = inject(QueryClient);
   protected readonly i18n = inject(I18nService);
+  private readonly ui = inject(UiFeedbackService);
 
   private readonly branchIdSignal = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('id') ?? '')),
@@ -52,6 +55,10 @@ export class BranchDetailComponent {
     const err = this.branchQuery.error();
     return err ? problemDetailMessage(err) : null;
   });
+  /** Names what failed: the deactivation or the load. */
+  readonly errorTitle = computed<TranslationKey>(() =>
+    this.deactivateError() ? 'deactivateFailed' : 'branchLoadFailed',
+  );
   readonly branch = computed(() => this.branchQuery.data() ?? null);
 
   readonly actionBusy = signal(false);
@@ -99,6 +106,7 @@ export class BranchDetailComponent {
         next: (updated) => {
           this.queryClient.setQueryData(branchQueryKeys.detail(id), updated);
           invalidateBranchListQueries(this.queryClient);
+          this.ui.success(this.i18n.t('toastBranchDeactivated'));
         },
         error: (err) => this.deactivateError.set(problemDetailMessage(err)),
       });

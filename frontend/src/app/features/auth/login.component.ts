@@ -11,7 +11,9 @@ import { AppFooterComponent } from '../../shared/footer/app-footer.component';
 import { BusySectionComponent } from '../../shared/ui/busy-section/busy-section.component';
 import { InlineAlertComponent } from '../../shared/ui/inline-alert/inline-alert.component';
 import { LoadingSpinnerComponent } from '../../shared/ui/loading-spinner/loading-spinner.component';
+import { LogoComponent } from '../../shared/ui/logo/logo.component';
 import { SettingsDropdownComponent } from '../../shared/ui/settings-dropdown/settings-dropdown.component';
+import { RouteMapArtComponent } from './route-map-art.component';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +23,8 @@ import { SettingsDropdownComponent } from '../../shared/ui/settings-dropdown/set
     InlineAlertComponent,
     BusySectionComponent,
     LoadingSpinnerComponent,
+    LogoComponent,
+    RouteMapArtComponent,
     SettingsDropdownComponent,
   ],
   templateUrl: './login.component.html',
@@ -64,7 +68,7 @@ export class LoginComponent {
       .login(username, password)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => void this.router.navigateByUrl('/branches'),
+        next: () => void this.router.navigateByUrl('/dashboard'),
         error: (err) => this.error.set(problemDetailMessage(err)),
       });
   }

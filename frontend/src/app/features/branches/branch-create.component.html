@@ -1,40 +1,41 @@
-<div class="mx-auto flex max-w-lg flex-col gap-4">
-  <div class="flex items-center gap-2">
-    <a routerLink="/branches" class="btn btn-ghost btn-sm">{{ i18n.t('back') }}</a>
-    <h1 class="text-2xl font-semibold">{{ i18n.t('newBranchTitle') }}</h1>
-  </div>
+<div class="flex max-w-lg flex-col gap-5">
+  <a routerLink="/branches" class="w-fit text-sm text-primary underline underline-offset-4 hover:decoration-2 focus-visible:rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ i18n.t('back') }}</a>
+  <h1 class="text-2xl font-semibold">{{ i18n.t('newBranchTitle') }}</h1>
+
   <app-inline-alert [message]="error()" variant="error" [title]="i18n.t('createFailed')" />
-  <app-busy-section
-    class="rounded-xl"
-    [busy]="saving()"
-    [label]="i18n.t('savingBranch')"
-    spinnerSize="sm"
-  >
-    <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="form-control w-full">
-        <span class="label-text">{{ i18n.t('code') }}</span>
-        <input class="input input-bordered w-full" formControlName="code" data-testid="branch-code" />
-        <span class="label-text-alt text-xs opacity-70">{{ i18n.t('codeHint') }}</span>
+
+  <app-busy-section class="rounded-box" [busy]="saving()" [label]="i18n.t('savingBranch')" spinnerSize="sm">
+    <form
+      class="flex flex-col gap-4 rounded-box border border-rule bg-surface p-6"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <label class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold">{{ i18n.t('code') }}</span>
+        <input class="input w-full tabular-nums" formControlName="code" data-testid="branch-code" />
+        <span class="text-sm text-base-content/80">{{ i18n.t('codeHint') }}</span>
       </label>
-      <label class="form-control w-full">
-        <span class="label-text">{{ i18n.t('name') }}</span>
-        <input class="input input-bordered w-full" formControlName="name" data-testid="branch-name" />
+      <label class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold">{{ i18n.t('name') }}</span>
+        <input class="input w-full" formControlName="name" data-testid="branch-name" />
       </label>
-      <label class="form-control w-full">
-        <span class="label-text">{{ i18n.t('city') }}</span>
-        <input class="input input-bordered w-full" formControlName="city" data-testid="branch-city" />
+      <label class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold">{{ i18n.t('city') }}</span>
+        <input class="input w-full" formControlName="city" data-testid="branch-city" />
       </label>
-      <button
-        type="submit"
-        class="btn btn-primary gap-2"
-        [disabled]="form.invalid || saving()"
-        data-testid="branch-submit"
-      >
-        @if (saving()) {
-          <app-loading-spinner size="xs" />
-        }
-        {{ i18n.t('create') }}
-      </button>
+      <div class="mt-2">
+        <button
+          type="submit"
+          class="btn btn-primary gap-2"
+          [disabled]="form.invalid || saving()"
+          data-testid="branch-submit"
+        >
+          @if (saving()) {
+            <app-loading-spinner size="xs" />
+          }
+          {{ i18n.t('addBranch') }}
+        </button>
+      </div>
     </form>
   </app-busy-section>
 </div>

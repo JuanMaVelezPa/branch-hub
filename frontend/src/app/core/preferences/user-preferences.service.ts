@@ -1,15 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { LocalPreferenceStore } from './local-preference-store';
-import type { LocaleCode, ThemeMode } from './preference-keys';
+import type { LocaleCode, SidebarMode, ThemeMode } from './preference-keys';
 
 /**
- * App-wide user preferences (theme, locale, …). Persists to localStorage via {@link LocalPreferenceStore}.
+ * App-wide user preferences (theme, locale, sidebar, …). Persists to localStorage via {@link LocalPreferenceStore}.
  *
  * Theme rules:
  * - If a value exists in storage, it wins.
  * - Otherwise the OS preference (`prefers-color-scheme`) is used.
  * - While there is no stored theme, OS changes are followed live.
  * - Calling {@link setTheme} or {@link toggleTheme} writes storage and stops following OS until cleared (future).
+ *
+ * Sidebar rules: a stored `expanded`/`collapsed` value wins; anything else falls back to `expanded`.
  */
 @Injectable({ providedIn: 'root' })
 export class UserPreferencesService {
@@ -28,6 +30,13 @@ export class UserPreferencesService {
     this.themeSignal() === 'dark' ? 'Light theme' : 'Dark theme',
   );
 
+  private readonly sidebarSignal = signal<SidebarMode>('expanded');
+
+  /** Desktop (lg+) sidebar mode; below lg the shell always uses the drawer. */
+  readonly sidebarMode = this.sidebarSignal.asReadonly();
+
+  readonly sidebarCollapsed = computed(() => this.sidebarSignal() === 'collapsed');
+
   private mediaQuery?: MediaQueryList;
   private boundOnSchemeChange?: () => void;
 
@@ -35,6 +44,8 @@ export class UserPreferencesService {
    * Call once at startup (e.g. `provideAppInitializer`) so the first paint matches stored or system theme.
    */
   initialize(): void {
+    this.sidebarSignal.set(this.store.getSidebarMode() ?? 'expanded');
+
     const stored = this.store.getTheme();
     if (stored != null) {
       this.followingSystem.set(false);
@@ -67,6 +78,15 @@ export class UserPreferencesService {
 
   toggleTheme(): void {
     this.setTheme(this.themeSignal() === 'dark' ? 'light' : 'dark');
+  }
+
+  setSidebarMode(mode: SidebarMode): void {
+    this.sidebarSignal.set(mode);
+    this.store.setSidebarMode(mode);
+  }
+
+  toggleSidebar(): void {
+    this.setSidebarMode(this.sidebarSignal() === 'collapsed' ? 'expanded' : 'collapsed');
   }
 
   /** Use when i18n is added (e.g. ngx-translate / built-in). */

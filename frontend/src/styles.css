@@ -1,9 +1,138 @@
+/* Branch Hub "wayfinding" identity (SPEC 03). The hex values in the spec's color table are the
+   source of truth; each OKLCH value below is a direct conversion of that hex. */
+
+/* Overpass Variable, self-hosted (CSP font-src 'self'). The unicode-range rules mean that en/es pages
+   only download the Latin file. */
+@import "@fontsource-variable/overpass";
+
 /* Tailwind CSS v4 + Angular: https://tailwindcss.com/docs/installation/framework-guides/angular */
 @import "tailwindcss" source(".");
 
 /* DaisyUI v5: https://daisyui.com/docs/install/ + https://daisyui.com/docs/themes/ */
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
-  include: button, dropdown, divider, footer, input, label, loading, modal, navbar, tab, table, badge, checkbox, skeleton, alert;
+  themes: false; /* only the two overrides below are emitted (no duplicate stock light/dark) */
+  include: button, dropdown, input, loading, modal, tab, table, checkbox, skeleton, alert, drawer, timeline, tooltip;
   logs: false;
+}
+
+/* Every color token is set explicitly so a DaisyUI upgrade cannot silently change a default.
+   Paper is base-200 in light and base-100 in dark (per the spec); templates use the
+   theme-independent paper/surface/rule utilities defined in @theme below. */
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(100% 0 0); /* Surface #FFFFFF */
+  --color-base-200: oklch(97.48% 0.0028 128.49); /* Paper #F6F7F5 */
+  --color-base-300: oklch(87.95% 0.0084 157.07); /* Rule grey #D3D9D5 */
+  --color-base-content: oklch(26.43% 0.0251 251.18); /* Ink #1C2631 */
+  --color-primary: oklch(51.67% 0.0999 169.04); /* Route green #0E7A5E */
+  --color-primary-content: oklch(100% 0 0); /* #FFFFFF */
+  --color-secondary: oklch(43.32% 0.0568 244.94); /* #35546E */
+  --color-secondary-content: oklch(100% 0 0); /* #FFFFFF */
+  --color-accent: oklch(75.55% 0.1518 78.62); /* Signal amber #E3A21A */
+  --color-accent-content: oklch(26.43% 0.0251 251.18); /* Ink */
+  --color-neutral: oklch(26.43% 0.0251 251.18); /* Ink */
+  --color-neutral-content: oklch(97.48% 0.0028 128.49); /* Paper */
+  --color-info: oklch(48.52% 0.1333 254.58); /* #1F5FA8 */
+  --color-info-content: oklch(100% 0 0); /* #FFFFFF */
+  --color-success: oklch(51.53% 0.1233 147.39); /* #2B7A3B */
+  --color-success-content: oklch(100% 0 0); /* #FFFFFF */
+  --color-warning: oklch(75.55% 0.1518 78.62); /* Signal amber #E3A21A (fill/marker only, never text on Paper) */
+  --color-warning-content: oklch(26.43% 0.0251 251.18); /* Ink */
+  --color-error: oklch(50.13% 0.1783 28.7); /* #B3261E */
+  --color-error-content: oklch(100% 0 0); /* #FFFFFF */
+
+  /* App-level semantic surfaces (see @theme). */
+  --bh-paper: oklch(97.48% 0.0028 128.49); /* #F6F7F5 */
+  --bh-surface: oklch(100% 0 0); /* #FFFFFF */
+  --bh-rule: oklch(87.95% 0.0084 157.07); /* #D3D9D5 */
+
+  /* Radii follow hierarchy: fields small, boxes medium, selectors (badges) pill. */
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --radius-selector: 2rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0; /* no shadows or 3D on panels and controls */
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(20.97% 0.0175 248.67); /* Night #121920 (Paper) */
+  --color-base-200: oklch(25.16% 0.0214 248.69); /* Surface #1A232C */
+  --color-base-300: oklch(33.05% 0.0218 243.11); /* Rule grey #2C3740 */
+  --color-base-content: oklch(92.94% 0.0067 160.07); /* Ink #E4E9E6 */
+  --color-primary: oklch(72.36% 0.1285 166.61); /* Route green #3FBF94 */
+  --color-primary-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-secondary: oklch(75% 0.0563 241.88); /* #8FB3CF */
+  --color-secondary-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-accent: oklch(80.22% 0.1357 83.56); /* Signal amber #E8B64A */
+  --color-accent-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-neutral: oklch(92.94% 0.0067 160.07); /* Ink */
+  --color-neutral-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-info: oklch(74.7% 0.0935 249.17); /* #7EB2E6 */
+  --color-info-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-success: oklch(76.51% 0.1383 149.65); /* #6CCB82 */
+  --color-success-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-warning: oklch(80.22% 0.1357 83.56); /* Signal amber #E8B64A */
+  --color-warning-content: oklch(20.97% 0.0175 248.67); /* Night */
+  --color-error: oklch(74.03% 0.126 26.45); /* #F08A80 */
+  --color-error-content: oklch(20.97% 0.0175 248.67); /* Night */
+
+  --bh-paper: oklch(20.97% 0.0175 248.67); /* #121920 */
+  --bh-surface: oklch(25.16% 0.0214 248.69); /* #1A232C */
+  --bh-rule: oklch(33.05% 0.0218 243.11); /* #2C3740 */
+
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --radius-selector: 2rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Type: Overpass for everything; scale ~1.25 (14 / 16 / 20 / 25 / 31 px). */
+@theme {
+  --font-sans: "Overpass Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --text-sm: 0.875rem; /* 14px: tables, secondary text */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem; /* 16px: body */
+  --text-base--line-height: 1.5rem;
+  --text-xl: 1.25rem; /* 20px */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5625rem; /* 25px */
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.9375rem; /* 31px */
+  --text-3xl--line-height: 2.375rem;
+}
+
+/* Theme-independent surfaces: bg-paper, bg-surface, border-rule, etc. */
+@theme inline {
+  --color-paper: var(--bh-paper);
+  --color-surface: var(--bh-surface);
+  --color-rule: var(--bh-rule);
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-base-content font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-semibold;
+  }
 }

@@ -1,39 +1,121 @@
-<div class="flex min-h-screen flex-col bg-base-200">
-  <header
-    class="navbar min-h-14 flex-wrap gap-x-2 gap-y-2 bg-base-100 px-2 shadow-sm sm:min-h-16 sm:px-4 pt-[env(safe-area-inset-top,0px)]"
-  >
-    <div class="flex min-w-0 flex-1">
-      <a routerLink="/branches" class="btn btn-ghost h-auto min-h-10 max-w-full shrink px-2 text-base font-medium sm:text-lg">
-        <span class="truncate">{{ i18n.t('appTitle') }}</span>
-      </a>
-    </div>
-    <div class="ml-auto flex flex-none flex-wrap items-center justify-end gap-1 sm:gap-2">
-      @if (auth.hasRole('SUPER_ADMIN')) {
-        <a
-          routerLink="/admin/users"
-          class="btn btn-ghost btn-sm"
-          [attr.aria-label]="i18n.t('admin')"
-          [attr.title]="i18n.t('admin')"
+<div class="drawer lg:drawer-open min-h-dvh bg-paper">
+  <input
+    id="app-drawer"
+    type="checkbox"
+    class="drawer-toggle"
+    tabindex="-1"
+    aria-hidden="true"
+    [checked]="drawerOpen()"
+    (change)="onDrawerToggleChange($event)"
+  />
+
+  <div class="drawer-content flex min-h-dvh min-w-0 flex-col">
+    <header
+      class="sticky top-0 z-30 border-b border-rule bg-surface pt-[env(safe-area-inset-top,0px)]"
+    >
+      <div class="flex h-14 items-center gap-2 px-2 sm:px-4">
+        <button
+          #drawerToggleButton
+          type="button"
+          class="btn btn-ghost btn-square btn-sm lg:hidden"
+          aria-controls="app-sidebar"
+          [attr.aria-expanded]="drawerOpen()"
+          [attr.aria-label]="i18n.t('openNavigation')"
+          data-testid="drawer-toggle"
+          (click)="openDrawer()"
         >
-          {{ i18n.t('admin') }}
-        </a>
-      }
-      <a
-        routerLink="/me"
-        class="btn btn-ghost btn-sm"
-        [attr.aria-label]="i18n.t('myProfileTitle')"
-        [attr.title]="i18n.t('myProfileTitle')"
-      >
-        {{ i18n.t('myProfileNav') }}
-      </a>
-      <app-settings-dropdown variant="account" (logoutRequested)="logout()" />
-      @if (loggingOut()) {
-        <app-loading-spinner size="sm" />
-      }
-    </div>
-  </header>
-  <div class="container mx-auto max-w-5xl flex-1 px-3 py-4 sm:px-4">
-    <router-outlet />
+          <app-icon name="menu" />
+        </button>
+        <span class="min-w-0 flex-1 truncate text-xl font-semibold">{{ pageTitle() }}</span>
+        <div class="flex flex-none items-center gap-1">
+          <app-settings-dropdown variant="account" />
+          @if (loggingOut()) {
+            <app-loading-spinner size="sm" />
+          } @else {
+            <button
+              type="button"
+              class="btn btn-ghost btn-square btn-sm"
+              [attr.aria-label]="i18n.t('logout')"
+              [attr.title]="i18n.t('logout')"
+              data-testid="account-menu-logout"
+              (click)="logout()"
+            >
+              <app-icon name="logout" />
+            </button>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
+      <router-outlet />
+    </main>
+    <app-footer />
   </div>
-  <app-footer />
+
+  <div class="drawer-side z-40" [class.lg:overflow-visible]="railCollapsed()" (keydown.escape)="closeDrawer()">
+    <label for="app-drawer" class="drawer-overlay" aria-hidden="true"></label>
+    <aside
+      id="app-sidebar"
+      class="flex min-h-full w-64 flex-col border-r border-rule bg-surface motion-safe:transition-[width] motion-safe:duration-200"
+      [class.lg:w-60]="!railCollapsed()"
+      [class.lg:w-16]="railCollapsed()"
+    >
+      <a
+        routerLink="/dashboard"
+        class="flex h-14 items-center border-b border-rule px-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+        [class.lg:justify-center]="railCollapsed()"
+        [class.lg:px-0]="railCollapsed()"
+      >
+        <app-logo
+          sizeClass="h-7 w-7 text-primary"
+          [wordmark]="true"
+          [label]="i18n.t('brandName')"
+          [wordmarkClass]="railCollapsed() ? 'lg:sr-only' : ''"
+        />
+      </a>
+
+      <nav class="flex-1 px-2 py-3" [attr.aria-label]="i18n.t('mainNavigation')">
+        <ul class="flex flex-col gap-1">
+          @for (item of navItems(); track item.path; let first = $first) {
+            <li
+              [class.lg:tooltip]="railCollapsed()"
+              [class.lg:tooltip-right]="railCollapsed()"
+              [attr.data-tip]="railCollapsed() ? i18n.t(item.labelKey) : null"
+            >
+              <a
+                #firstNavLink
+                [routerLink]="item.path"
+                routerLinkActive="bg-primary/10 font-semibold text-primary before:bg-primary"
+                ariaCurrentWhenActive="page"
+                class="relative flex min-h-10 items-center gap-3 rounded-field px-3 text-base-content before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:content-[''] hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                [class.lg:justify-center]="railCollapsed()"
+                [class.lg:px-0]="railCollapsed()"
+                [attr.aria-label]="i18n.t(item.labelKey)"
+                [attr.data-testid]="item.testId"
+              >
+                <app-icon [name]="item.icon" />
+                <span class="truncate" [class.lg:sr-only]="railCollapsed()">{{ i18n.t(item.labelKey) }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <div class="hidden border-t border-rule p-2 lg:flex" [class.lg:justify-end]="!railCollapsed()" [class.lg:justify-center]="railCollapsed()">
+        <button
+          type="button"
+          class="btn btn-ghost btn-square btn-sm"
+          aria-controls="app-sidebar"
+          [attr.aria-expanded]="!railCollapsed()"
+          [attr.aria-label]="i18n.t(railCollapsed() ? 'sidebarExpand' : 'sidebarCollapse')"
+          [attr.title]="i18n.t(railCollapsed() ? 'sidebarExpand' : 'sidebarCollapse')"
+          data-testid="sidebar-toggle"
+          (click)="prefs.toggleSidebar()"
+        >
+          <app-icon [name]="railCollapsed() ? 'sidebar-expand' : 'sidebar-collapse'" />
+        </button>
+      </div>
+    </aside>
+  </div>
 </div>

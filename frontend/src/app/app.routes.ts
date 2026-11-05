@@ -15,7 +15,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'branches' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        data: { titleKey: 'dashboardTitle' },
+        loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
       {
         path: 'admin',
         canActivate: [roleGuard(['SUPER_ADMIN'])],

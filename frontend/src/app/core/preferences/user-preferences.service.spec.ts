@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { LocalPreferenceStore } from './local-preference-store';
+import { PreferenceKeys } from './preference-keys';
 import { UserPreferencesService } from './user-preferences.service';
 
 type MockMediaQuery = {
@@ -15,6 +16,8 @@ describe('UserPreferencesService', () => {
     setTheme: ReturnType<typeof vi.fn>;
     getLocale: ReturnType<typeof vi.fn>;
     setLocale: ReturnType<typeof vi.fn>;
+    getSidebarMode: ReturnType<typeof vi.fn>;
+    setSidebarMode: ReturnType<typeof vi.fn>;
   };
   let mediaQuery: MockMediaQuery;
 
@@ -24,6 +27,8 @@ describe('UserPreferencesService', () => {
       setTheme: vi.fn(),
       getLocale: vi.fn().mockReturnValue(null),
       setLocale: vi.fn(),
+      getSidebarMode: vi.fn().mockReturnValue(null),
+      setSidebarMode: vi.fn(),
     };
 
     mediaQuery = {
@@ -103,5 +108,74 @@ describe('UserPreferencesService', () => {
 
     service.setLocale('en-US');
     expect(store.setLocale).toHaveBeenCalledWith('en-US');
+  });
+});
+
+describe('UserPreferencesService sidebar mode', () => {
+  let service: UserPreferencesService;
+
+  beforeEach(() => {
+    localStorage.clear();
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    });
+    // Real LocalPreferenceStore, so the storage key and value validation are exercised end to end.
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(UserPreferencesService);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it('uses the versioned storage key', () => {
+    expect(PreferenceKeys.sidebar).toBe('branch-hub.pref.v1.sidebar');
+  });
+
+  it('defaults to expanded when nothing is stored', () => {
+    service.initialize();
+
+    expect(service.sidebarMode()).toBe('expanded');
+    expect(service.sidebarCollapsed()).toBe(false);
+  });
+
+  it('reads a stored collapsed mode on initialize', () => {
+    localStorage.setItem(PreferenceKeys.sidebar, 'collapsed');
+
+    service.initialize();
+
+    expect(service.sidebarMode()).toBe('collapsed');
+    expect(service.sidebarCollapsed()).toBe(true);
+  });
+
+  it('falls back to expanded for an unknown stored value', () => {
+    localStorage.setItem(PreferenceKeys.sidebar, 'sideways');
+
+    service.initialize();
+
+    expect(service.sidebarMode()).toBe('expanded');
+  });
+
+  it('setSidebarMode updates the signal and writes storage', () => {
+    service.initialize();
+
+    service.setSidebarMode('collapsed');
+
+    expect(service.sidebarMode()).toBe('collapsed');
+    expect(localStorage.getItem(PreferenceKeys.sidebar)).toBe('collapsed');
+  });
+
+  it('toggleSidebar flips between modes and persists each change', () => {
+    service.initialize();
+
+    service.toggleSidebar();
+    expect(service.sidebarMode()).toBe('collapsed');
+    expect(localStorage.getItem(PreferenceKeys.sidebar)).toBe('collapsed');
+
+    service.toggleSidebar();
+    expect(service.sidebarMode()).toBe('expanded');
+    expect(localStorage.getItem(PreferenceKeys.sidebar)).toBe('expanded');
   });
 });

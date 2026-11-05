@@ -1,24 +1,24 @@
 <div class="flex gap-1" role="group" [attr.aria-label]="i18n.t('language')">
   <button
     type="button"
-    class="btn btn-xs flex-1 border-base-300 font-medium tabular-nums"
+    class="btn btn-sm flex-1 border-rule font-semibold"
     [class.btn-primary]="i18n.locale() === 'en'"
-    [class.btn-ghost]="i18n.locale() !== 'en'"
+    [class.bg-surface]="i18n.locale() !== 'en'"
     [attr.aria-pressed]="i18n.locale() === 'en'"
-    [attr.aria-label]="i18n.t('languageEnglish')"
+    lang="en"
     (click)="i18n.setLocale('en')"
   >
-    EN
+    English
   </button>
   <button
     type="button"
-    class="btn btn-xs flex-1 border-base-300 font-medium tabular-nums"
+    class="btn btn-sm flex-1 border-rule font-semibold"
     [class.btn-primary]="i18n.locale() === 'es'"
-    [class.btn-ghost]="i18n.locale() !== 'es'"
+    [class.bg-surface]="i18n.locale() !== 'es'"
     [attr.aria-pressed]="i18n.locale() === 'es'"
-    [attr.aria-label]="i18n.t('languageSpanish')"
+    lang="es"
     (click)="i18n.setLocale('es')"
   >
-    ES
+    Español
   </button>
 </div>
