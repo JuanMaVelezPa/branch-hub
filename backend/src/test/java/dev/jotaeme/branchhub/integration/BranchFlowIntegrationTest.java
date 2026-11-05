@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jotaeme.branchhub.infrastructure.security.JwtProperties;
 import dev.jotaeme.branchhub.infrastructure.security.JwtTokenService;
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,9 +16,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,16 +28,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Testcontainers
-@SpringBootTest
 @AutoConfigureMockMvc
-class BranchFlowIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18")
-            .withDatabaseName("branchhub")
-            .withUsername("branchhub")
-            .withPassword("branchhub");
+class BranchFlowIntegrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,9 +41,6 @@ class BranchFlowIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("security.jwt.secret", () -> "test-secret-test-secret-test-secret-123");
         registry.add("security.jwt.expiration-seconds", () -> "3600");
         // Keep this test focused on the branch flow (not IAM bootstrap).
@@ -63,30 +49,6 @@ class BranchFlowIntegrationTest {
 
     @BeforeEach
     void cleanTable() {
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS branch (
-                    id UUID PRIMARY KEY,
-                    code VARCHAR(30) NOT NULL UNIQUE,
-                    name VARCHAR(150) NOT NULL,
-                    city VARCHAR(120) NOT NULL,
-                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-                    created_at TIMESTAMP NOT NULL,
-                    updated_at TIMESTAMP NOT NULL
-                )
-                """);
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS outbox_event (
-                    id UUID PRIMARY KEY,
-                    aggregate_type VARCHAR(80) NOT NULL,
-                    aggregate_id UUID NOT NULL,
-                    event_type VARCHAR(120) NOT NULL,
-                    payload TEXT NOT NULL,
-                    status VARCHAR(20) NOT NULL,
-                    retry_count INTEGER NOT NULL DEFAULT 0,
-                    created_at TIMESTAMP NOT NULL,
-                    processed_at TIMESTAMP NULL
-                )
-                """);
         jdbcTemplate.execute("DELETE FROM branch");
         jdbcTemplate.execute("DELETE FROM outbox_event");
     }

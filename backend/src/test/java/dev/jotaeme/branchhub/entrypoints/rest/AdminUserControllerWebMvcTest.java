@@ -1,5 +1,6 @@
 package dev.jotaeme.branchhub.entrypoints.rest;
 
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import dev.jotaeme.branchhub.application.common.pagination.PageQuery;
 import dev.jotaeme.branchhub.application.common.pagination.PageResult;
 import dev.jotaeme.branchhub.application.common.exception.UnprocessableEntityException;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -30,9 +30,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-class AdminUserControllerWebMvcTest {
+class AdminUserControllerWebMvcTest extends AbstractPostgresIntegrationTest {
     private static final UUID ACTOR_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 

@@ -1,5 +1,6 @@
 package dev.jotaeme.branchhub.entrypoints.rest;
 
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import dev.jotaeme.branchhub.application.security.model.AuthResult;
 import dev.jotaeme.branchhub.application.security.usecase.AuthenticateUserUseCase;
 import dev.jotaeme.branchhub.application.security.usecase.RefreshTokenUseCase;
@@ -8,7 +9,6 @@ import dev.jotaeme.branchhub.application.common.exception.UnprocessableEntityExc
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,9 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-class AuthControllerWebMvcTest {
+class AuthControllerWebMvcTest extends AbstractPostgresIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 

@@ -1,11 +1,11 @@
 package dev.jotaeme.branchhub.entrypoints.rest;
 
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import dev.jotaeme.branchhub.application.security.model.AdminUserResult;
 import dev.jotaeme.branchhub.application.security.usecase.AdminGetUserUseCase;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,9 +19,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-class MeControllerWebMvcTest {
+class MeControllerWebMvcTest extends AbstractPostgresIntegrationTest {
 
     private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
 

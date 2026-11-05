@@ -1,6 +1,6 @@
 # SPEC 01 — Rename to branch-hub and get the repo ready to publish
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** none in this repo. Related: `jotaeme-dev` SPEC 05 (Draft), which lists this project in the `code` category and says the repo cleanup comes before `/code`.
 > **Date:** 2026-11-04
 > **Objective:** Rename `spring-web` to `branch-hub` across code, infra and GitHub, and turn its README, docs and repo metadata into a recruiter-ready portfolio showcase that links to `jotaeme.dev`.
@@ -165,25 +165,25 @@ Screenshot conventions: the PNGs come from the running Compose stack at 1440×90
 
 ## Acceptance criteria
 
-- [ ] `grep -rnI -e 'spring-web' -e 'spring_web' -e 'SpringWeb' -e 'Spring Web' -e 'companydb' -e 'com\.jm\.' --exclude-dir={node_modules,build,dist,.angular,.gradle,.git} .` matches only in `specs/` and in `CHANGELOG.md` entries that describe the rename.
-- [ ] Every Java file under `backend/src` declares a package that starts with `dev.jotaeme.branchhub`. The main class is `BranchHubApplication`.
-- [ ] `./gradlew clean test` passes (from `backend/`).
-- [ ] `npm test` and `npm run build` pass (from `frontend/`).
-- [ ] `npm run test:e2e:smoke` and `npm run test:e2e:admin-smoke` pass against the Compose stack.
-- [ ] After `docker compose down -v && docker compose up -d --build`, `docker compose ps` shows only `branch-hub-*` containers, all running and healthy, and the database is `branchhub`.
-- [ ] Login in the SPA works with the `.env` super admin credentials.
-- [ ] Prometheus `/targets` shows job `branch-hub-api` as UP. `/rules` shows group `branch-hub-alerts`.
-- [ ] Grafana opens `/d/branch-hub-observability` with data in its panels.
-- [ ] After a theme change and a reload, the theme persists, and `localStorage` holds keys that start with `branch-hub.pref.v1`.
-- [ ] `LICENSE` exists with the MIT text and `Copyright (c) 2026 Juan Manuel Vélez Parra`.
-- [ ] The root `README.md` follows the 10-part structure. It has no Spanish text, no email address, no `juanmavelezdev`, and no "template" or "fork" wording. It links to `https://jotaeme.dev`, `https://www.linkedin.com/in/juanmavelezpa` and `https://github.com/JuanMaVelezPa`.
-- [ ] `grep -rnI -e 'juanmavelezdev' -e 'gmail.com' --exclude-dir={node_modules,build,dist,.git} .` matches only in `specs/`, where the spec quotes the strings it forbids.
-- [ ] `docs/architecture.md` and `docs/getting-started.md` exist. `docs/architecture.md` has three Mermaid blocks.
-- [ ] `docs/images/` has `login.png`, `branches.png`, `admin-users.png` and `grafana.png`. Each one is under 500 KB, is linked from the root README, and shows only fictional data.
-- [ ] No file under `docs/` or `CHANGELOG.md` contains "base template", "forks" or "fresh chat window".
-- [ ] Every relative link in the repo's `*.md` files (outside `node_modules`) points to an existing file, checked with `npx markdown-link-check` or an equivalent script.
-- [ ] On GitHub (after step 15): `github.com/JuanMaVelezPa/branch-hub` loads, and `github.com/JuanMaVelezPa/spring-web` redirects to it. The sidebar shows the MIT license, the Website `https://jotaeme.dev`, the new description and 18 topics. The README Mermaid diagram renders.
-- [ ] `git remote get-url origin` returns `https://github.com/JuanMaVelezPa/branch-hub.git`.
+- [x] `grep -rnI -e 'spring-web' -e 'spring_web' -e 'SpringWeb' -e 'Spring Web' -e 'companydb' -e 'com\.jm\.' --exclude-dir={node_modules,build,dist,.angular,.gradle,.git} .` matches only in `specs/` and in `CHANGELOG.md` entries that describe the rename.
+- [x] Every Java file under `backend/src` declares a package that starts with `dev.jotaeme.branchhub`. The main class is `BranchHubApplication`.
+- [x] `./gradlew clean test` passes (from `backend/`).
+- [x] `npm test` and `npm run build` pass (from `frontend/`).
+- [x] `npm run test:e2e:smoke` and `npm run test:e2e:admin-smoke` pass against the Compose stack.
+- [x] After `docker compose down -v && docker compose up -d --build`, `docker compose ps` shows only `branch-hub-*` containers, all running and healthy, and the database is `branchhub`.
+- [x] Login in the SPA works with the `.env` super admin credentials.
+- [x] Prometheus `/targets` shows job `branch-hub-api` as UP. `/rules` shows group `branch-hub-alerts`.
+- [x] Grafana opens `/d/branch-hub-observability` with data in its panels.
+- [x] After a theme change and a reload, the theme persists, and `localStorage` holds keys that start with `branch-hub.pref.v1`.
+- [x] `LICENSE` exists with the MIT text and `Copyright (c) 2026 Juan Manuel Vélez Parra`.
+- [x] The root `README.md` follows the 10-part structure. It has no Spanish text, no email address, no `juanmavelezdev`, and no "template" or "fork" wording. It links to `https://jotaeme.dev`, `https://www.linkedin.com/in/juanmavelezpa` and `https://github.com/JuanMaVelezPa`.
+- [x] `grep -rnI -e 'juanmavelezdev' -e 'gmail.com' --exclude-dir={node_modules,build,dist,.git} .` matches only in `specs/`, where the spec quotes the strings it forbids.
+- [x] `docs/architecture.md` and `docs/getting-started.md` exist. `docs/architecture.md` has three Mermaid blocks.
+- [x] `docs/images/` has `login.png`, `branches.png`, `admin-users.png` and `grafana.png`. Each one is under 500 KB, is linked from the root README, and shows only fictional data.
+- [x] No file under `docs/` or `CHANGELOG.md` contains "base template", "forks" or "fresh chat window".
+- [x] Every relative link in the repo's `*.md` files (outside `node_modules`) points to an existing file, checked with `npx markdown-link-check` or an equivalent script.
+- [x] On GitHub (after step 15): `github.com/JuanMaVelezPa/branch-hub` loads, and `github.com/JuanMaVelezPa/spring-web` redirects to it. The sidebar shows the MIT license, the Website `https://jotaeme.dev`, the new description and 18 topics. The README Mermaid diagram renders.
+- [x] `git remote get-url origin` returns `https://github.com/JuanMaVelezPa/branch-hub.git`.
 
 ## Decisions
 

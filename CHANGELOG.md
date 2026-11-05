@@ -4,6 +4,20 @@ All notable changes to Branch Hub are documented here. Version labels **`v1.x`**
 
 ## Unreleased
 
+**Flyway now owns the database schema (SPEC 02).**
+
+- **Schema:**
+  - Added `spring-boot-starter-flyway`, which Spring Boot 4 needs to run Flyway. Migrations now run on every startup, in every profile.
+  - Replaced `V1`–`V4` with one baseline, `V1__init_schema.sql`. Flyway had never run anywhere, so no checksum breaks. The baseline is frozen from now on.
+  - Dropped the redundant `iam_user_email_idx`; the unique constraint on `iam_user.email` already indexes it.
+  - The `docker` profile no longer sets `ddl-auto=update`, so every profile uses `validate`.
+  - **Action needed:** a local database Hibernate created has no Flyway history. Run `docker compose down -v` once (see [getting started](docs/getting-started.md#database-urls)).
+- **Tests:**
+  - Testcontainers moved from the pinned `1.21.4` to the `2.0.4` that Spring Boot manages, with `@ServiceConnection`.
+  - Every Spring context test runs on one shared PostgreSQL container built by the migrations. H2 is removed, and `./gradlew test` needs Docker.
+  - The integration tests no longer create their own tables, and `BranchHubApplicationTests` no longer excludes Boot 3 auto-configuration classes that do not exist in Boot 4.
+  - New `FlywayMigrationIntegrationTest` checks that version `1` is applied and every app table exists.
+
 **Renamed the project from `spring-web` to `branch-hub` and prepared the repository for publishing.**
 
 - **Rename:**
@@ -29,7 +43,6 @@ All notable changes to Branch Hub are documented here. Version labels **`v1.x`**
   - Added an MIT [LICENSE](LICENSE), [docs/architecture.md](docs/architecture.md) with Mermaid diagrams, and [docs/getting-started.md](docs/getting-started.md).
   - Rewrote the root README and [docs/README.md](docs/README.md).
   - Rewrote the roadmap as project documentation.
-- **Known issue:** Flyway migrations do not run on Spring Boot 4 because `spring-boot-starter-flyway` is missing. The `docker` profile creates the schema with Hibernate (`ddl-auto=update`) until this is fixed.
 
 ## v1.1.0
 

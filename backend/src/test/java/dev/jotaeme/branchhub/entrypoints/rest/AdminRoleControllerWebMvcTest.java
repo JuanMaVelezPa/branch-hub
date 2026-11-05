@@ -1,13 +1,14 @@
 package dev.jotaeme.branchhub.entrypoints.rest;
 
+import dev.jotaeme.branchhub.support.AbstractPostgresIntegrationTest;
 import dev.jotaeme.branchhub.infrastructure.persistence.iam.IamRoleJpaEntity;
 import dev.jotaeme.branchhub.infrastructure.persistence.iam.IamRoleRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,11 +20,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {
-        "app.security.bootstrap.enabled=false"
-})
+@TestPropertySource(properties = "app.security.bootstrap.enabled=false")
 @AutoConfigureMockMvc
-class AdminRoleControllerWebMvcTest {
+class AdminRoleControllerWebMvcTest extends AbstractPostgresIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
