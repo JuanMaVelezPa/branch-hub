@@ -2,9 +2,7 @@
 
 Living checklist: update when a milestone closes. Technical detail stays in module READMEs.
 
-**Ordered evolution (versions, waves, BE+FE together):** [**evolution.md**](evolution.md) — read this first for **what to do next** and **v1.x** base template bumps.
-
-**Branch names vs IAM3:** a branch called `iam2` matches **wave 2 (v1.2)**, which in the docs is a single code **IAM2** (admin API + admin SPA). The next **IAM** wave is **IAM3** = **v1.4** — see [evolution.md § Git branches vs IAM codes](evolution.md#git-branch-names-vs-iam-codes-read-this-once).
+**Ordered evolution (versions, waves, BE+FE together):** [**evolution.md**](evolution.md) — read this first for **what to do next** and **v1.x** release numbers.
 
 ## Delivery timeline (read this first)
 
@@ -20,12 +18,12 @@ Living checklist: update when a milestone closes. Technical detail stays in modu
 
 ### IAM & later waves — map to [evolution.md](evolution.md)
 
-Work landed **out of strict wave order** in places (e.g. **F3** and **IAM2** shipped while IAM1 was still maturing). Use the tables below for **what is done vs what remains**; the version column is the **template label** when you choose to “close” a wave.
+Work landed **out of strict wave order** in places (e.g. **F3** and **IAM2** shipped while IAM1 was still maturing). Use the tables below for **what is done vs what remains**; the version column is the **release label** used when a wave closes.
 
 | Version | Wave | Codes (summary) | Closure status |
 |---------|------|-----------------|----------------|
-| **v1.1** | 1 | **IAM1** | **Done** for this template — email/password identity, lockout, **`GET /api/v1/me`** + SPA **`/me`**; phone/OAuth → **IAM4**. |
-| **v1.2** | 2 | **IAM2** (admin API + admin UI) | **Done** for this template (super-admin IAM + audit read + method security). Optional multi-app scope remains YAGNI. |
+| **v1.1** | 1 | **IAM1** | **Done** — email/password identity, lockout, **`GET /api/v1/me`** + SPA **`/me`**; phone/OAuth → **IAM4**. |
+| **v1.2** | 2 | **IAM2** (admin API + admin UI) | **Done** (super-admin IAM + audit read + method security). Optional multi-app scope remains YAGNI. |
 | **v1.3** | 3 | **F3** | **Done** |
 | **v1.4** | 4 | **IAM3** | Not started |
 | **v1.5** | 5 | **IAM4** | Not started (forgot password, OTP, **phone**, Google OAuth, …) |
@@ -62,11 +60,11 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 | REST **`/api/v1/admin/roles`** (list) | **Done** |
 | **`GET /api/v1/admin/audit-logs`** (paged) + **`/admin/audit-log`** UI | **Done** |
 | **`SUPER_ADMIN` only** on `/api/v1/admin/**` (`SecurityConfig`) | **Done** |
-| **`APP_ADMIN`** on **`/api/v1/branches/**`** only (not on IAM admin) | **Done** (single-app template) |
+| **`APP_ADMIN`** on **`/api/v1/branches/**`** only (not on IAM admin) | **Done** (single-app scope) |
 | **IAM audit** persistence (**V4** `iam_audit_log`) on user create / enable / roles | **Done** |
 | Metrics for admin actions | **Done** (`app_iam_admin_action_total`, etc.) |
 | **`@PreAuthorize` / method-level** on admin REST controllers | **Done** (`@EnableMethodSecurity` + class-level `hasRole('SUPER_ADMIN')`). |
-| **APP_ADMIN “scoped” IAM** (per-application users/roles, `applications` table) | **Deferred** — **YAGNI** for single-deploy template; revisit for multi-tenant forks. |
+| **APP_ADMIN “scoped” IAM** (per-application users/roles, `applications` table) | **Deferred** — **YAGNI** for a single deployment; revisit if multi-tenant support is needed. |
 | **`/admin`** lazy routes; **`roleGuard(['SUPER_ADMIN'])`**; shell link | **Done** |
 | Users / roles / audit screens; TanStack Query (**F3** pattern) | **Done** |
 | Create-user flow + password policy checklist | **Done** |
@@ -74,17 +72,18 @@ Single code **IAM2** = **wave 2 (v1.2)**: backend admin endpoints **and** Angula
 | **Change-password** UI (and API) | **Gap** → typically **IAM3/4** with reset flow, or small dedicated story |
 | **Postman / OpenAPI** kept in sync with admin endpoints | **Ongoing** — verify when APIs change |
 
-**IAM2 / v1.2 closure (this template):** Treat **v1.2** as **closed** when the **Done** rows above match your deployment. Rows **Partial** (phone/Google login) or **Gap** (change-password) are **not** part of the core IAM2 slice: they are either deferred to **IAM4** or optional polish. **APP_ADMIN-scoped IAM** is explicitly **YAGNI** here. To formalize closure: run [verification commands](#verification-quick) below, update Postman if needed, and tag or note **v1.2** in the changelog or PR.
+**IAM2 / v1.2 closure:** Treat **v1.2** as **closed** when the **Done** rows above match your deployment. Rows **Partial** (phone/Google login) or **Gap** (change-password) are **not** part of the core IAM2 slice: they are either deferred to **IAM4** or optional polish. **APP_ADMIN-scoped IAM** is explicitly **YAGNI** here. To formalize closure: run [verification commands](#verification-quick) below, update Postman if needed, and tag or note **v1.2** in the changelog or PR.
 
 ### What to do next (suggested order)
 
-1. **v1.1** is **closed** in docs for this template (tag **`v1.1.0`** or your convention when you bump the baseline — see root `CHANGELOG.md`).
-2. **v1.2 (IAM2) for this repo:** closed with **method security** + **audit log read** + admin UI; multi-app IAM remains an optional fork extension.
+1. **v1.1** is **closed** (tag **`v1.1.0`** — see [CHANGELOG.md](../../CHANGELOG.md)).
+2. **v1.2 (IAM2) for this repo:** closed with **method security** + **audit log read** + admin UI; multi-app IAM remains an optional extension.
 3. **IAM2 polish (optional):** **change-password** if you add the API; keep register/OAuth/phone aligned with **IAM4**.
 4. Then **IAM3** (refresh rotation, rate limits, MFA, …) per [evolution.md](evolution.md).
 
 ### Progress note (recent delivery)
 
+- **SPEC 01 — rename to Branch Hub and publish readiness** (last done item): renamed the project to `branch-hub` across code (package `dev.jotaeme.branchhub`), database (`branchhub`), Compose, Prometheus, Grafana, SPA and Postman; MIT license; [architecture](../architecture.md) and [getting started](../getting-started.md) docs; roadmap rewritten as project docs. Fixed during its health pass: the Kafka consumer group never formed on the single Compose broker (internal-topic replication factor), the p95 and failed-notifications panels had no data, failed logins were not counted, and the admin tabs were unstyled (see `CHANGELOG.md`). Also found: Flyway does not run on Boot 4 (missing `spring-boot-starter-flyway`) → **SPEC 02**, before CI.
 - **v1.1 closure:** **`GET /api/v1/me`** (`MeController`); SPA **`/me`** + shell **Profile** link; Postman **1.05 Me**; TanStack `me` queries cleared on login/logout.
 - **v1.2 closure:** `@EnableMethodSecurity` + `@PreAuthorize("hasRole('SUPER_ADMIN')")` on admin controllers; **`GET /api/v1/admin/audit-logs`** (paged); admin UI subnav + **Audit** tab with TanStack Query.
 - **IAM2** advanced with reusable validation utilities:
@@ -143,10 +142,13 @@ Shared loading, shell (account menu, tab title, favicon), footer — see [fronte
 
 ```bash
 # Backend (from repo root)
-cd backend && ./gradlew test
+cd backend && ./gradlew clean test
 
 # Frontend
 cd frontend && npm ci && npm run build && npm test
+
+# E2E smoke against the Compose stack (from frontend/; see docs/getting-started.md)
+npm run test:e2e:smoke && npm run test:e2e:admin-smoke
 ```
 
 ## Git workflow

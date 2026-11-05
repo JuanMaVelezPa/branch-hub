@@ -31,7 +31,7 @@ Keep the model **small and explainable** (KISS). Extend later with permissions i
 
 ## 1.1) Identity anchors & account uniqueness *(decided direction)*
 
-IAM for this stack is designed **with modern B2C-style accounts in mind**: people **sign in and verify** using **email**, **phone**, and/or **Google (OAuth)** — not a legacy “username string” as the main key. That keeps accounts **unique, recoverable, and easy to reason about** across forks.
+IAM for this stack is designed **with modern B2C-style accounts in mind**: people **sign in and verify** using **email**, **phone**, and/or **Google (OAuth)** — not a legacy “username string” as the main key. That keeps accounts **unique, recoverable, and easy to reason about** as the project grows.
 
 | Concept | Rule |
 |---------|------|
@@ -58,7 +58,7 @@ Aligned with [status.md](status.md): implement in vertical slices (DB + API + te
 | **IAM3** | **Hardening & trust operations** | Refresh token **rotation**; **session / device list** + revoke others; **rate limits** on login, register, OTP endpoints; **TOTP MFA** for **SUPER_ADMIN** / optional **APP_ADMIN**; **security notification emails** (new login, password change); CSP follow-ups. See **§2.2 (P2)**. *Legacy:* older drafts called this **IAM4**. |
 | **IAM4** | **Recovery & alternate sign-in** | **Forgot password** + **OTP-backed reset** (email → SMS). **Google** (OAuth2 / OIDC). **Phone** verified + SMS OTP login path. See §2.1. *Legacy:* older drafts called this **IAM5**. |
 | **IAM5** (optional) | **Account lifecycle & step-up** | **Mandatory verification** UX (block or limit until email/phone verified — align §1.1); **step-up re-auth** (password / OTP / MFA) for change email, change phone, **delete account**; **export my data** + **delete account** (GDPR-style); **consent / ToS version** stored at signup; **CAPTCHA** on hot endpoints when abuse appears. See **§2.2 (P3)**. *Legacy:* older drafts called this **IAM6**. |
-| **IAM6** (optional) | **Advanced credentials & integrations** | **Passkeys / WebAuthn** (passwordless, phishing-resistant); **API keys** or OAuth2 client credentials for **machine-to-machine** (only if a fork needs integrations). See **§2.2 (P4–P5)**. *Legacy:* older drafts called this **IAM7**. |
+| **IAM6** (optional) | **Advanced credentials & integrations** | **Passkeys / WebAuthn** (passwordless, phishing-resistant); **API keys** or OAuth2 client credentials for **machine-to-machine** (only if integrations need them). See **§2.2 (P4–P5)**. *Legacy:* older drafts called this **IAM7**. |
 
 **YAGNI:** Do not build a full generic policy engine until two real apps need conflicting rules.
 
@@ -66,14 +66,14 @@ Aligned with [status.md](status.md): implement in vertical slices (DB + API + te
 
 ## 2.1) Password policy, lockout, recovery & social login *(review backlog)*
 
-Single-organization-per-deployment (fork template) stays the default; features below are **reusable utilities** across all password-based flows.
+Single organization per deployment stays the default; features below are **reusable utilities** across all password-based flows.
 
 ### Shared password validation (backend + frontend)
 
 | Layer | Responsibility |
 |-------|------------------|
 | **Backend** | One **password policy** component (domain or application module): min/max length, character classes, deny common passwords (optional list), normalize Unicode. Used by **register**, **change password**, **admin set password**, **reset password**. Expose rules via **Problem Details** / field errors with stable codes. |
-| **Frontend** | Mirror the same rules with Angular **validators** + optional strength hint — **one documented mapping** from API error codes to messages (avoid divergent copy). Prefer importing **constants** generated from OpenAPI or a tiny shared JSON contract so DRY holds across forks. |
+| **Frontend** | Mirror the same rules with Angular **validators** + optional strength hint — **one documented mapping** from API error codes to messages (avoid divergent copy). Prefer importing **constants** generated from OpenAPI or a tiny shared JSON contract so DRY holds between backend and frontend. |
 
 **Progress note (implemented early):** IAM2 admin user creation now uses a shared password policy utility in backend and a reusable visual validation helper in frontend (real-time criteria checklist in the create-user modal).
 
@@ -95,7 +95,7 @@ Single-organization-per-deployment (fork template) stays the default; features b
 
 | Method | Approach | Notes |
 |--------|-----------|--------|
-| **Google** | Spring **OAuth2 Login** / OIDC; map verified email or `sub` to `users` (link or create). Forks register their own **Google Cloud OAuth client** per environment. |
+| **Google** | Spring **OAuth2 Login** / OIDC; map verified email or `sub` to `users` (link or create). Each deployment registers its own **Google Cloud OAuth client** per environment. |
 | **Phone** | Treat phone as **E.164** + **verified** flag; primary flow often **SMS OTP** (same OTP subsystem as password reset). Builds “login with phone” UX without storing SMS as password. |
 
 UI: clear buttons (“Continue with Google”), accessible phone input (country code), consistent with existing shell/DaisyUI — learning goal includes **polished auth screens**.
@@ -120,7 +120,7 @@ Order below is **recommended execution priority** after the core path **IAM1 →
 | **P2** | **TOTP MFA** | Authenticator app for **SUPER_ADMIN** (required in prod) and optional for users. | **IAM3** (secrets encrypted at rest). |
 | **P2** | **Step-up authentication** | Require recent **password**, **OTP**, or **MFA** before **change email**, **change phone**, **delete account**, sensitive settings. | **IAM5** (policy + endpoints). |
 | **P3** | **CAPTCHA** | Add **after** rate limits when bots persist (register, forgot password). | **IAM5** or when metrics justify (hCaptcha / Turnstile). |
-| **P3** | **Account export & deletion** | **Export** user-related data; **soft/hard delete** with audit; align legal copy in fork. | **IAM5** |
+| **P3** | **Account export & deletion** | **Export** user-related data; **soft/hard delete** with audit; align legal copy per deployment. | **IAM5** |
 | **P3** | **Consent & policy versioning** | Store **ToS / privacy version accepted** at registration; re-prompt on material updates when needed. | **IAM2 / IAM5** |
 | **P4** | **Passkeys (WebAuthn)** | Passwordless sign-in; strong phishing resistance; optional second factor. | **IAM6** |
 | **P5** | **API keys / M2M** | Separate from human JWT; scopes; rotation — only for **integrations** or worker services. | **IAM6** |
@@ -131,21 +131,21 @@ Order below is **recommended execution priority** after the core path **IAM1 →
 
 ## 2.3) Additional considerations *(operations, delivery, trust)*
 
-Items below complement **§2.2** — not all belong in code; several are **per-fork** policy.
+Items below complement **§2.2** — not all belong in code; several are **per-deployment** policy.
 
 | Area | What to keep in mind |
 |------|----------------------|
 | **Observability** | Metrics for **login success/failure**, OTP send rate, lockouts (aggregated — avoid PII in labels). Structured logs with **user id** and **correlation id**; never log passwords, OTPs, or raw tokens. Dashboards/alerts for auth anomalies. |
 | **Email deliverability** | For OTP and security mails: **SPF, DKIM, DMARC** on the sending domain; use a reputable provider; handle bounces so you do not keep dead addresses as verified. |
-| **OAuth redirects** | **Whitelist** redirect URIs per environment (dev/staging/prod); misconfiguration is a common vulnerability. Document the exact URLs per fork. |
+| **OAuth redirects** | **Whitelist** redirect URIs per environment (dev/staging/prod); misconfiguration is a common vulnerability. Document the exact URLs per environment. |
 | **Time & tokens** | Servers on **accurate time** (NTP); JWT validation allows small **clock skew**; **TOTP** clients need correct device time. |
 | **i18n & a11y** | All auth copy (errors, verification, MFA) via your **i18n** layer; forms **keyboard**-navigable, errors linked to fields (**WCAG** basics). |
 | **Backups & DR** | `users` / sessions / audit are **critical** — include in backup/restore drills; define RPO/RTO for identity data per deployment. |
-| **Compliance & copy** | Privacy policy / consent text **per fork** and jurisdiction; if you store EU users, plan **GDPR**-aligned export/delete (IAM5); B2B may need **DPA** templates. |
+| **Compliance & copy** | Privacy policy / consent text **per deployment** and jurisdiction; if you store EU users, plan **GDPR**-aligned export/delete (IAM5); B2B may need **DPA** templates. |
 | **CI / supply chain** | **Secret scanning** on commits; `npm audit` / Gradle dependency check in pipeline; pin or review major auth-related library upgrades. |
 | **Incident playbooks** | How to **disable** a compromised account globally, **rotate** `JWT_SECRET`, notify users (template), post-mortem doc. |
 | **Support & abuse** | Path for **manual unlock** (admin) vs self-service; process for **reported account takeover**; optional **IP allowlists** only for high-risk admin UIs. |
-| **Mobile / deep links** | If a fork ships native apps: **universal links** / app links for email verification and OAuth return URLs — plan early to avoid brittle WebView hacks. |
+| **Mobile / deep links** | If native apps ship: **universal links** / app links for email verification and OAuth return URLs — plan early to avoid brittle WebView hacks. |
 
 ---
 
@@ -188,8 +188,8 @@ Items below complement **§2.2** — not all belong in code; several are **per-f
 
 ## 6) Open questions (answer before IAM1 coding)
 
-1. **Multi-tenancy:** One database with `tenant_id` on rows, or separate schemas per customer? (Affects JWT claims and queries.) *Default for this template: **single org per deployment** (fork); defer multi-tenant SaaS unless needed.*
-2. **Identity provider:** Core stack stays **custom JWT** + **Google OAuth** (IAM4). Optional **enterprise IdP** (Keycloak, Entra) only if a fork requires it.
+1. **Multi-tenancy:** One database with `tenant_id` on rows, or separate schemas per customer? (Affects JWT claims and queries.) *Default for this project: **single org per deployment**; defer multi-tenant SaaS unless needed.*
+2. **Identity provider:** Core stack stays **custom JWT** + **Google OAuth** (IAM4). Optional **enterprise IdP** (Keycloak, Entra) only if a deployment requires it.
 3. **Super admin bootstrap:** Single seed user by **email + password** from env/migration (aligned with §1.1).
 4. **Per-app admins:** Fixed set of applications in DB vs. one deployment per app with shared IAM service?
 

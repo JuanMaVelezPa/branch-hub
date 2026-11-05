@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <property name="LOG_PATH" value="${LOG_PATH:-logs}" />
-    <property name="APP_NAME" value="${spring.application.name:-spring-web}" />
+    <property name="APP_NAME" value="${spring.application.name:-branch-hub}" />
 
     <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">

@@ -1,86 +1,94 @@
-# Spring Web — Monorepo
+# Branch Hub
 
-Portfolio **full-stack** project: **Spring Boot** API (`backend/`), **Angular** SPA (`frontend/`), and **observability** (`monitoring/`). HTTP contract is the boundary between Java and TypeScript.
+A full-stack app to manage company branches, built like a production system: Spring Boot 4 + Angular 21, secure by default, observable end to end.
 
-| Start here | Description |
-|------------|-------------|
-| [backend/README.md](backend/README.md) | API, Docker, security matrix, tests, Gradle |
-| [frontend/README.md](frontend/README.md) | Angular dev server, proxy, UI stack |
-| [docs/README.md](docs/README.md) | **Roadmap** + [**evolution (v1.x waves)**](docs/roadmap/evolution.md) + [IAM](docs/roadmap/auth-platform.md) + **Postman** + [security](docs/security.md) |
+## Highlights
 
-## Repository layout
+- **Clean Architecture** in the API: `domain`, `application` (use cases and ports), `infrastructure` (adapters) and `entrypoints`, with no Spring Data or web types in the use cases.
+- **Secure by default:** a short-lived JWT kept only in memory, an HttpOnly refresh cookie, role-based access (`SUPER_ADMIN`, `APP_ADMIN`), account lockout, an audit log, and a strict CSP on the SPA.
+- **Reliable events:** branch writes use a transactional outbox. A relay publishes to Kafka, and the consumer is idempotent, with retries and a dead-letter topic.
+- **Consistent API:** RFC 7807 Problem Details for every error, one pagination contract for all lists, and an OpenAPI spec.
+- **Typed contract in the SPA:** TypeScript types are generated from the OpenAPI spec, so a renamed endpoint breaks the frontend build instead of production.
+- **Observable end to end:** structured JSON logs with a transaction id, custom Micrometer metrics, a Grafana dashboard, and Prometheus alerts sent to Discord through Alertmanager.
+- **Tested at every level:** unit and WebMvc tests, Testcontainers integration tests on PostgreSQL, Vitest for the SPA, and Playwright end-to-end smoke tests.
 
-```text
-backend/           # Spring Boot (Gradle); build output: backend/build/
-frontend/          # Angular SPA
-docs/
-  roadmap/         # Phased plan, IAM (auth-platform.md), backend/frontend phases
-  postman/         # Postman collection (shared API contract)
-monitoring/        # Prometheus, Grafana, Alertmanager, …
-docker-compose.yml # Root: separate services (e.g. API `app`, Nginx `web`, Prometheus, Kafka, …)
+## Screenshots
+
+| Login | Branches |
+| ----- | -------- |
+| ![Login page](docs/images/login.png) | ![Paged branch list](docs/images/branches.png) |
+
+| Admin: users | Grafana |
+| ------------ | ------- |
+| ![Admin user management](docs/images/admin-users.png) | ![Grafana observability dashboard](docs/images/grafana.png) |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    browser([Browser]) --> web["web<br/>Nginx + Angular SPA"]
+    web -- "/api" --> app["app<br/>Spring Boot API"]
+    app --> postgres[(PostgreSQL)]
+    app -- "outbox relay / consumer" --> kafka[[Kafka]]
+    prometheus[Prometheus] -- "scrapes" --> app
+    prometheus --> alertmanager[Alertmanager] --> discord([Discord])
+    grafana[Grafana] --> prometheus
 ```
+
+The SPA talks to the API through Nginx on the same origin. The API owns PostgreSQL and Kafka, and Prometheus, Grafana and Alertmanager watch it. More diagrams (backend layers, the outbox sequence) and the key flows are in [docs/architecture.md](docs/architecture.md).
+
+## Tech stack
+
+| Area | Technologies |
+| ---- | ------------ |
+| Backend | Java 25, Spring Boot 4, Spring Security, Spring Data JPA, springdoc-openapi, Gradle |
+| Frontend | Angular 21 (standalone components, signals), TypeScript, TanStack Query, Tailwind CSS 4, DaisyUI 5 |
+| Data and messaging | PostgreSQL 18, Flyway, Apache Kafka (transactional outbox) |
+| Observability | Micrometer, Prometheus, Grafana, Alertmanager (Discord), Blackbox exporter, JSON logs |
+| Testing | JUnit 6, Spring MVC slice tests, Testcontainers, Vitest, Playwright |
+| Delivery | Docker, Docker Compose, Nginx |
 
 ## Quick start
 
-### Full stack with Docker Compose (quick)
-
-From the **repository root** (where `docker-compose.yml` lives):
-
 ```bash
-cp .env.example .env
-# Edit .env: JWT_SECRET and APP_SUPER_ADMIN_PASSWORD are required (see .env.example).
-# Optional (local Alertmanager): see [backend/README.md](backend/README.md).
-
+cp .env.example .env    # set JWT_SECRET and APP_SUPER_ADMIN_PASSWORD
 docker compose up -d --build
 ```
 
-- **`--build`** rebuilds images (`app`, `web`, …). If you did not change code/images, `docker compose up -d` is enough.
-- **Ports (host):** SPA (Nginx) **http://localhost:8080** · API (Spring) **http://localhost:8081** (Postman, Swagger, Actuator direct). The SPA still calls **`/api` on :8080**; Nginx forwards those requests to `app` so the browser stays same-origin (no extra CORS setup).
-- **Grafana:** http://localhost:3000 · **Prometheus:** http://localhost:9090  
-- Stop: `docker compose down` · Logs: `docker compose logs -f web app`
+Then open the SPA at http://localhost:8080 (API: http://localhost:8081, Grafana: http://localhost:3000). The full guide, including the Alertmanager files, the default login, running without Docker and the tests, is in [docs/getting-started.md](docs/getting-started.md).
 
-### Database URLs (avoid 5432/5433 confusion)
+## Project structure
 
-- **When the API runs in Docker Compose** (service `app`): use the Compose hostname  
-  - `DB_URL=jdbc:postgresql://postgres:5432/companydb` (this is the default in `.env.example`)
-- **When the API runs on your machine** (Gradle / debugger) but you still use the Compose Postgres container: use the host-mapped port  
-  - `DB_URL=jdbc:postgresql://localhost:5433/companydb` (Compose maps `5433 -> 5432`)
+```text
+branch-hub/
+├── backend/            # Spring Boot API (Gradle), Flyway scripts, tests
+├── frontend/           # Angular SPA, Nginx config, Playwright e2e
+├── monitoring/         # Prometheus, Alertmanager, Blackbox, Grafana
+├── docs/               # Architecture, getting started, security, roadmap, Postman
+├── docker-compose.yml  # Full local stack (project "branch-hub")
+└── docker-compose.prod.yml
+```
 
-### UI login (default values)
+## Documentation
 
-After `cp .env.example .env`, the API creates the application user defined in `.env`. **Defaults** (from `.env.example`):
+- [Getting started](docs/getting-started.md) and [architecture](docs/architecture.md)
+- [Backend README](backend/README.md) and [frontend README](frontend/README.md)
+- [Security notes](docs/security.md)
+- [Documentation index](docs/README.md), including the Postman collection
+- [Changelog](CHANGELOG.md)
 
-| | |
-|--|--|
-| **Username** | `admin@example.com` |
-| **Password** | `Admin_ChangeMe_2026!` |
+## Roadmap
 
-If you changed `APP_SUPER_ADMIN_EMAIL` or `APP_SUPER_ADMIN_PASSWORD` in your `.env`, use those values in the login form.
-
-**If login responds `422 Unprocessable Content`:** the response body is typically *Invalid credentials* — the API is rejecting username/password. Check that `.env` has no quotes around `APP_SUPER_ADMIN_PASSWORD`, no trailing spaces, and **restart the `app` container** after changing it (the SUPER_ADMIN is seeded at startup if missing).
-
-Nota: para el login usa `APP_SUPER_ADMIN_EMAIL` / `APP_SUPER_ADMIN_PASSWORD` (no `APP_USER` / `APP_PASSWORD`).
-
-Variables, Alertmanager, and production-like compose: [backend/README.md](backend/README.md).
-
-### Without Docker
-
-1. Run the API on port **8080**, then [frontend/README.md](frontend/README.md) (`npm start` → http://localhost:4200/ with `/api` proxy).
-
-## Planning & standards
-
-Phased delivery, Git workflow, and decided standards: [docs/roadmap/overview.md](docs/roadmap/overview.md).  
-What is done vs next: [docs/roadmap/status.md](docs/roadmap/status.md).  
-Template release notes (`v1.x`): [CHANGELOG.md](CHANGELOG.md).
+Releases `v1.0` to `v1.2` are done (API, SPA, hardening, identity and the admin platform); see [docs/roadmap/status.md](docs/roadmap/status.md) for what is next.
 
 ## Author
 
-**JuanMa** — Backend Java Developer
+**Juan Manuel Vélez Parra** — Java Backend Engineer
 
-- GitHub: https://github.com/JuanMaVelezPa
-- LinkedIn: https://www.linkedin.com/in/juanmavelezdev/
-- Email: juanmavelezpa@gmail.com
+- Website: [jotaeme.dev](https://jotaeme.dev)
+- LinkedIn: [linkedin.com/in/juanmavelezpa](https://www.linkedin.com/in/juanmavelezpa)
+- GitHub: [github.com/JuanMaVelezPa](https://github.com/JuanMaVelezPa)
 
-## Note for recruiters
+## License
 
-Small business scope, high engineering signal: architecture, reliability patterns, tests, and production-oriented observability in one repo.
+MIT. See [LICENSE](LICENSE).

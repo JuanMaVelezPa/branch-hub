@@ -1,18 +1,12 @@
-# Roadmap — Base template evolution (waves & versions)
+# Roadmap — Evolution (waves & versions)
 
 This document is the **single ordered plan** for growing the monorepo: **one wave at a time**, backend and frontend aligned where needed, **learning from each delivery** before scaling scope. Detailed specs stay in [auth-platform.md](auth-platform.md), [frontend.md](frontend.md), [backend.md](backend.md).
 
-**Version label (`v1.x`):** the **base template** maturity for forks — not the npm package version. Bump **`v1.x`** when a **wave** closes (document in commit + short release note in PR).
+**Version label (`v1.x`):** the release number of this project — not the npm or Gradle artifact version. Bump **`v1.x`** when a **wave** closes (document it in the commit, the PR and [CHANGELOG.md](../../CHANGELOG.md)).
 
-### Git branch names vs IAM codes (read this once)
+### Milestone codes
 
-| Confusion | Reality |
-|-----------|---------|
-| “My branch is `iam2` but docs say next is **IAM3**” | **Normal.** Git branches are **your** labels. The roadmap uses **design codes** (**IAM1…6**) and **template versions** (**v1.1…**). Rename or open a new branch when you start the next slice (e.g. `feature/v1.4-iam3`). |
-| “**IAM3** appears twice in old chats” | **Legacy name collision.** The **retired** code **IAM3** meant **admin SPA only**; that work is now **IAM2** (admin API + SPA). The **current** **IAM3** is **wave 4** (**v1.4**): refresh rotation, sessions/devices, rate limits, MFA, security emails, etc. Older docs called this slice **IAM4**. |
-| Order of codes | **IAM1** (wave 1) → **IAM2** (wave 2, admin API + admin UI) → **F3** (wave 3) → **IAM3** (wave 4) → **IAM4** (wave 5) → **IAM5** (wave 6) → **IAM6** (wave 7) |
-
-So: after closing **v1.2**, the next **IAM** milestone in the plan is **IAM3** / **v1.4** (unless you **swap** waves 4 and 5 per the note below for forgot-password/OAuth first).
+Waves use design codes, in this order: **IAM1** (wave 1) → **IAM2** (wave 2, admin API + admin UI) → **F3** (wave 3) → **IAM3** (wave 4) → **IAM4** (wave 5) → **IAM5** (wave 6) → **IAM6** (wave 7). The next **IAM** milestone after **v1.2** is **IAM3** / **v1.4**, unless waves 4 and 5 are swapped (see the note in wave 5).
 
 **Rules**
 
@@ -42,7 +36,7 @@ Checklist: [status.md](status.md) (steps 1–5 **Done**).
 
 **Original note:** “No full admin UI yet” applied to the **first** IAM wave; in this repo **wave 2** delivers **admin API + admin UI** under a single code **IAM2**. Treat wave 1 as **identity + login**; wave 2 as **admin platform (full stack)**.
 
-**Outcome:** Real accounts in PostgreSQL; same fork template, Flyway migrations.  
+**Outcome:** Real accounts in PostgreSQL, with the schema in Flyway migration scripts.  
 **Learn:** End-to-end persistence auth, migration discipline.
 
 **Phone / OAuth / handle columns:** deferred to **IAM4+** (and optional preparatory migrations) unless you need schema early — see [status.md](status.md).
@@ -53,12 +47,12 @@ Checklist: [status.md](status.md) (steps 1–5 **Done**).
 
 | Track | Deliverables |
 |-------|----------------|
-| **Full stack** | **IAM2** — Admin REST under `/api/v1/admin/...` (users, roles, audit read), Spring Security (+ optional **`@PreAuthorize`**), **IAM audit** on mutations, password policy on create; Angular **`/admin`** (guards, users/roles/audit UI, OpenAPI typings). Optional **APP_ADMIN**-scoped IAM for multi-app; **single-app template** keeps IAM admin **SUPER_ADMIN-only**. |
+| **Full stack** | **IAM2** — Admin REST under `/api/v1/admin/...` (users, roles, audit read), Spring Security (+ optional **`@PreAuthorize`**), **IAM audit** on mutations, password policy on create; Angular **`/admin`** (guards, users/roles/audit UI, OpenAPI typings). Optional **APP_ADMIN**-scoped IAM for multi-app; this **single-app** project keeps IAM admin **SUPER_ADMIN-only**. |
 
-**Outcome:** Operators manage identity from the browser (super-admin in this template).  
+**Outcome:** Operators manage identity from the browser (super-admin only).  
 **Learn:** Authorization beyond a single generic admin, audit trail, one milestone name for the vertical slice.
 
-**Reality check:** wave 2 is **closed** in this repo for the single-app template: **method-level** `hasRole('SUPER_ADMIN')` on admin controllers, **paged audit read** (`GET /api/v1/admin/audit-logs`), and SPA **`/admin/audit-log`**. Only **multi-app / APP_ADMIN-scoped IAM** stays intentionally deferred — see [status.md — IAM2](status.md#iam2-admin-platform-api--spa).
+**Reality check:** wave 2 is **closed** in this repo for the single-app scope: **method-level** `hasRole('SUPER_ADMIN')` on admin controllers, **paged audit read** (`GET /api/v1/admin/audit-logs`), and SPA **`/admin/audit-log`**. Only **multi-app / APP_ADMIN-scoped IAM** stays intentionally deferred — see [status.md — IAM2](status.md#iam2-admin-platform-api--spa).
 
 ---
 
@@ -116,7 +110,7 @@ Checklist: [status.md](status.md) (steps 1–5 **Done**).
 
 | Track | Deliverables |
 |-------|----------------|
-| **Backend + Frontend** | **IAM6** — Passkeys (WebAuthn), API keys / M2M if a fork needs them. |
+| **Backend + Frontend** | **IAM6** — Passkeys (WebAuthn), API keys / M2M if integrations need them. |
 
 ---
 
@@ -128,19 +122,19 @@ Checklist: [status.md](status.md) (steps 1–5 **Done**).
 | New domain features (non-IAM) | New rows in [status.md](status.md); same wave discipline |
 | Free-tier pragmatism | [auth-platform.md](auth-platform.md) (baseline paragraph + §2.3) |
 
-### Template maintenance (forks & staying modern)
+### Maintenance practices
 
-These **do not replace** the versioned waves above; revisit them **between** waves or in CI so new apps stay healthy without scope creep.
+These **do not replace** the versioned waves above; revisit them **between** waves or in CI so the project stays healthy without scope creep.
 
 | Practice | Notes |
 |----------|--------|
-| **CI on every PR** | Run `./gradlew test` and `npm ci && npm run build && npm test` (and smoke E2E when feasible) so forks do not regress silently. |
+| **CI on every PR** | Run `./gradlew test` and `npm ci && npm run build && npm test` (and smoke E2E when feasible) so changes do not regress silently. |
 | **Dependencies** | Use Dependabot/Renovate or a monthly review — priority: security patches for auth, Spring, Angular. |
 | **API contract** | Keep OpenAPI and generated typings aligned; optional CI step fails if spec and code drift. |
-| **Git tags + changelog** | Tag **`v1.x`** when a wave closes; one-line **CHANGELOG** entry — helps forks know which baseline they cloned. |
+| **Git tags + changelog** | Tag **`v1.x`** when a wave closes; one-line **CHANGELOG** entry that records what each release contains. |
 | **Environments** | Same deploy shape for `dev` / `staging` / `prod`; only config/secrets differ (see root `.env.example`). |
 | **Container bases** | Periodically bump base images (JDK, Node build stage, Nginx) for CVE fixes. |
-| **License & attribution** | Keep **LICENSE** and a short “based on” note when distributing a fork for another company. |
+| **License** | The project is MIT-licensed ([LICENSE](../../LICENSE)); keep the file and its copyright line. |
 | **i18n & a11y** | New screens: strings via i18n; forms usable with keyboard — matches existing shell patterns. |
 | **Frontend weight** | Prefer **lazy routes** and avoid unnecessary bundle growth as features land. |
 

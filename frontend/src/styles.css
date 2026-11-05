@@ -4,6 +4,6 @@
 /* DaisyUI v5: https://daisyui.com/docs/install/ + https://daisyui.com/docs/themes/ */
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-  include: button, dropdown, divider, footer, input, label, loading, modal, navbar, table, badge, checkbox, skeleton, alert;
+  include: button, dropdown, divider, footer, input, label, loading, modal, navbar, tab, table, badge, checkbox, skeleton, alert;
   logs: false;
 }

@@ -1,25 +1,27 @@
+name: branch-hub
+
 services:
   postgres:
     image: postgres:18
-    container_name: company-postgres
+    container_name: branch-hub-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-companydb}
-      POSTGRES_USER: ${POSTGRES_USER:-company}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-company}
+      POSTGRES_DB: ${POSTGRES_DB:-branchhub}
+      POSTGRES_USER: ${POSTGRES_USER:-branchhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-branchhub}
     ports:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U company -d companydb"]
+      test: ["CMD-SHELL", "pg_isready -U branchhub -d branchhub"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   kafka:
     image: apache/kafka:3.8.0
-    container_name: company-kafka
+    container_name: branch-hub-kafka
     restart: unless-stopped
     ports:
       - "9092:9092"
@@ -34,13 +36,23 @@ services:
       CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # Single broker: internal topics must use RF 1, or __consumer_offsets is never created and no consumer group can join.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_NUM_PARTITIONS: 3
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   app:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: branches-api
+    container_name: branch-hub-api
     restart: unless-stopped
     depends_on:
       postgres:
@@ -49,9 +61,9 @@ services:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/companydb}
-      DB_USERNAME: ${DB_USERNAME:-company}
-      DB_PASSWORD: ${DB_PASSWORD:-company}
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/branchhub}
+      DB_USERNAME: ${DB_USERNAME:-branchhub}
+      DB_PASSWORD: ${DB_PASSWORD:-branchhub}
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
@@ -59,7 +71,7 @@ services:
       APP_SUPER_ADMIN_EMAIL: ${APP_SUPER_ADMIN_EMAIL:-admin@example.com}
       APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:?APP_SUPER_ADMIN_PASSWORD is required in .env}
     ports:
-      - "8081:8080"
+      - "${API_PORT:-8081}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
@@ -71,13 +83,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: branches-web
+    container_name: branch-hub-web
     restart: unless-stopped
     depends_on:
       app:
         condition: service_healthy
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1"]
       interval: 15s
@@ -87,7 +99,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.54.1
-    container_name: company-prometheus
+    container_name: branch-hub-prometheus
     restart: unless-stopped
     depends_on:
       app:
@@ -111,7 +123,7 @@ services:
 
   blackbox:
     image: prom/blackbox-exporter:v0.25.0
-    container_name: company-blackbox
+    container_name: branch-hub-blackbox
     restart: unless-stopped
     volumes:
       - ./monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
@@ -119,10 +131,15 @@ services:
       - "--config.file=/etc/blackbox_exporter/config.yml"
     ports:
       - "9115:9115"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9115/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   alertmanager:
     image: prom/alertmanager:v0.28.1
-    container_name: company-alertmanager
+    container_name: branch-hub-alertmanager
     restart: unless-stopped
     volumes:
       - ${ALERTMANAGER_CONFIG_FILE:-./monitoring/alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
@@ -140,7 +157,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.2
-    container_name: company-grafana
+    container_name: branch-hub-grafana
     restart: unless-stopped
     depends_on:
       prometheus:
@@ -154,7 +171,7 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q '\"database\":\"ok\"'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -qE '\"database\": *\"ok\"'"]
       interval: 20s
       timeout: 5s
       retries: 8

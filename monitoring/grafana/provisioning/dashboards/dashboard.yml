@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: "spring-web-dashboards"
+  - name: "branch-hub-dashboards"
     orgId: 1
-    folder: "Spring Web"
+    folder: "Branch Hub"
     type: file
     disableDeletion: false
     editable: true
