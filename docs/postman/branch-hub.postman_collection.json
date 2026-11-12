@@ -12,7 +12,7 @@
         "type": "text/javascript",
         "exec": [
           "if (!pm.collectionVariables.get('baseUrl')) {",
-          "  pm.collectionVariables.set('baseUrl', 'http://localhost:8081');",
+          "  pm.collectionVariables.set('baseUrl', 'http://localhost:18091');",
           "}",
           "if (!pm.collectionVariables.get('superAdminEmail')) {",
           "  pm.collectionVariables.set('superAdminEmail', 'admin@example.com');",
@@ -652,7 +652,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8081"
+      "value": "http://localhost:18091"
     },
     {
       "key": "superAdminEmail",

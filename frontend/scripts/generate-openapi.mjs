@@ -2,7 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 
-const defaultSpecUrl = 'http://localhost:8081/v3/api-docs';
+const defaultSpecUrl = 'http://localhost:18091/v3/api-docs';
 const specInput = process.env.OPENAPI_SPEC_URL ?? defaultSpecUrl;
 const outputPath = path.resolve(
   process.cwd(),
@@ -17,7 +17,7 @@ async function main() {
   if (result.status !== 0) {
     console.error('openapi: generation failed.');
     console.error(
-      'Ensure backend is running and OpenAPI is available, e.g. http://localhost:8081/v3/api-docs',
+      'Ensure backend is running and OpenAPI is available, e.g. http://localhost:18091/v3/api-docs',
     );
     process.exit(1);
   }

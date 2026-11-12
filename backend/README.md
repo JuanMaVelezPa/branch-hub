@@ -70,28 +70,37 @@ docker compose up -d --build
 
 Configure `JWT_SECRET`, `APP_SUPER_ADMIN_PASSWORD`, and (optional) Discord webhook per root `.env.example`. Full guide, including the database URLs and troubleshooting: [docs/getting-started.md](../docs/getting-started.md).
 
-**URLs (Docker Compose on the host, default ports; change them with `WEB_PORT` / `API_PORT` in `.env`):**
+**URLs (Docker Compose on the host).** Every host port is bound to `127.0.0.1` in the block 18090–18095; override one with its variable in `.env`. The full table is in [docs/getting-started.md](../docs/getting-started.md#ports-and-urls).
 
 | Service | Host port | Notes |
 |--------|-----------|--------|
-| **`web`** (Nginx + Angular) | **8080** | Browser entry. Proxies `/api`, `/actuator`, `/swagger-ui`, `/v3/*` to `app` so the UI keeps a single origin. |
-| **`app`** (Spring Boot) | **8081** | Direct API: Postman, `curl`, Swagger UI at http://localhost:8081/swagger-ui.html, Actuator, etc. |
-| PostgreSQL | **5433** | Database `branchhub`, user `branchhub`. Exposed for local tooling (psql, migrations debugging). Inside the Compose network the hostname is `postgres:5432`. |
-| Grafana | 3000 | Dashboard `branch-hub-observability` (folder **Branch Hub**). |
-| Prometheus | 9090 | Job **`branch-hub-api`** scrapes **`app:8080`** on the Compose network (not via the host port). |
+| **`web`** (Nginx + Angular) | **18090** (`WEB_PORT`) | Browser entry. Proxies `/api`, `/swagger-ui`, `/v3/*` and `/actuator/health` to `app` so the UI keeps a single origin. Other `/actuator/*` paths return 404. |
+| **`app`** (Spring Boot) | **18091** (`API_PORT`) | Direct API: Postman, `curl`, Swagger UI at http://127.0.0.1:18091/swagger-ui.html, Actuator, etc. |
+| Grafana | 18092 (`GRAFANA_PORT`) | Dashboard `branch-hub-observability` (folder **Branch Hub**). |
+| Prometheus | 18093 (`PROMETHEUS_PORT`) | Job **`branch-hub-api`** scrapes **`app:8080`** on the Compose network (not via the host port). |
+| Alertmanager | 18094 (`ALERTMANAGER_PORT`) | Silences. |
+| PostgreSQL | **18095** (`POSTGRES_PORT`) | Database `branchhub`, user `branchhub`. For psql, DBeaver and `bootRun` from the host (`DB_URL=jdbc:postgresql://localhost:18095/branchhub`). Inside the Compose network the hostname is `postgres:5432`. |
+
+Kafka and the Blackbox exporter have no host port: Kafka advertises `kafka:9092`, which does not resolve from the host.
 
 Separate images: **`app`** is built from `backend/` (Spring Boot only); **`web`** from `frontend/` (Angular production build + `nginx` image with `nginx.conf`).
 
-## Production-like compose
+## Prod overlay (the published stack)
 
-From **repo root**:
+The server runs `docker-compose.prod.yml` on top of the base file; its `.env` sets `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`, so a plain `docker compose up -d` deploys it. Elsewhere, from the **repo root**:
 
 ```bash
 cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-With `prod`: Swagger disabled, actuator reduced, health details hidden.
+The `prod` profile on its own disables Swagger, exposes only `health,info` and hides health details. The overlay then sets, for `app`:
+
+- `SECURITY_COOKIES_SECURE=true` (the refresh cookie gets `Secure`).
+- `SPRINGDOC_API_DOCS_ENABLED` / `SPRINGDOC_SWAGGER_UI_ENABLED=true`: Swagger is published on purpose at `https://code-branchhub.jotaeme.dev/swagger-ui.html`.
+- `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus` and `APP_SECURITY_ACTUATOR_PUBLIC=true`, so Prometheus scrapes over the private network. The API is not on the `edge` network and Nginx serves only `/actuator/health` publicly.
+
+It requires the external `edge` network. See [docs/getting-started.md](../docs/getting-started.md#server-mode-the-prod-overlay).
 
 ## Architecture
 
@@ -110,14 +119,14 @@ Phase-aligned notes (Problem Details, JWT + refresh cookie, what minification do
 
 ## Security matrix (summary)
 
-- Public: `/api/v1/auth/**`, Swagger/OpenAPI (non-prod), `GET /actuator/health`, `GET /actuator/info`
-- Optional public: `/actuator/metrics/**`, `/actuator/prometheus` (configurable)
+- Public: `/api/v1/auth/**`, Swagger/OpenAPI (off in the `prod` profile, turned back on by the prod overlay), `GET /actuator/health`, `GET /actuator/info`
+- Optional public: `/actuator/metrics/**`, `/actuator/prometheus` (`APP_SECURITY_ACTUATOR_PUBLIC`; through `web`, Nginx still returns 404 for every actuator path except health)
 - **SUPER_ADMIN:** `/api/v1/admin/**` (users, roles, **audit log** `GET /api/v1/admin/audit-logs`)
 - **SUPER_ADMIN / APP_ADMIN:** `/api/v1/branches/**`
 - **Authenticated (any role):** `GET /api/v1/me` (current user profile: id, email, roles, …)
 - Other routes: authenticated
 
-Spring does **not** serve the static UI; the **`web`** container (Nginx) does on host port **8080**. The API is also reachable **directly** on host port **8081** for tools and clarity.
+Spring does **not** serve the static UI; the **`web`** container (Nginx) does on host port **18090**. The API is also reachable **directly** on host port **18091** (`127.0.0.1` only) for tools.
 
 **Auth:** login sets HttpOnly refresh cookie; access token in response body (SPA keeps it in memory). `POST /api/v1/auth/logout` clears refresh cookie (`204`).
 

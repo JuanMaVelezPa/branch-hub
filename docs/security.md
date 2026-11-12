@@ -130,7 +130,31 @@ Aligned with [roadmap/frontend.md](roadmap/frontend.md).
 
 ---
 
-## 8) What to learn next (suggested order)
+## 8) What is public on the published demo, and why
+
+The server runs the prod overlay behind the `server-tuf` Cloudflare Tunnel. Cloudflare terminates TLS; `cloudflared` reaches containers by name on the external `edge` network. No host port is used for public traffic.
+
+| Public URL | Served by | What a visitor can reach | Why |
+|------------|-----------|--------------------------|-----|
+| `https://code-branchhub.jotaeme.dev` | `branch-hub-web` (Nginx) | The SPA, `/api/**` (same rules as everywhere: login is public, the rest needs a JWT), Swagger UI and `/v3/api-docs`, and `/actuator/health` | The project exists to show the code and the API. Swagger on the same origin means "Try it out" needs no CORS. |
+| `https://code-branchhub-grafana.jotaeme.dev` | `branch-hub-grafana` | Every dashboard, read-only, as anonymous `Viewer`; no login form, no sign-up | Show the observability stack. On its own host so a Grafana XSS cannot call `/api/v1/auth/refresh` with the SPA's refresh cookie, and the SPA's strict CSP needs no exceptions. |
+
+What stays private:
+
+- **The API container** is not on `edge`. Nginx returns 404 for every `/actuator/*` path except `health`, so `prometheus`, `metrics` and `env` are reachable only on the private Compose network, where Prometheus scrapes them.
+- **PostgreSQL, Kafka, Prometheus, Alertmanager and the Blackbox exporter** are not on `edge`. Their host ports (when they have one) are bound to `127.0.0.1` in the block 18090–18095, for the owner over SSH.
+- **Secrets** live in the server's `.env` and in the gitignored `discord-webhook-url`; `.env.prod.example` holds placeholders only.
+
+Transport and cookies: the refresh cookie is `Secure` and `HttpOnly` on the prod overlay. Nginx forwards the `X-Forwarded-Proto: https` that `cloudflared` sends, so Spring builds `https://` URLs (for example the Swagger server URL). Browsers treat `localhost` and `127.0.0.1` as secure contexts, so the owner can still log in on `http://127.0.0.1:18090`.
+
+Known gaps, accepted for now:
+
+- **No rate limit** on the public login. Mitigation: a strong `APP_SUPER_ADMIN_PASSWORD` and Cloudflare's default protections; rate limiting is a future spec.
+- **Grafana data is public.** Panels show service up/down and request rates, never secrets. New panels must keep it that way.
+
+---
+
+## 9) What to learn next (suggested order)
 
 1. Tighten **CSP** further (hashes/nonce, drop `'unsafe-inline'` for styles if you can).  
 2. **HSTS**, **COOP** / **COEP** (only with full audit — can break third-party scripts).  

@@ -31,7 +31,7 @@ Index of the Branch Hub documentation. Implementation details (pagination, loadi
 ## API contract
 
 - **Postman:** import [`postman/branch-hub.postman_collection.json`](postman/branch-hub.postman_collection.json). It lives with the docs so the backend and the frontend share one contract reference.
-- **OpenAPI:** Swagger UI at `/swagger-ui.html` on the API (not in the `prod` profile). The SPA generates its typings from `/v3/api-docs` (see the [frontend README](../frontend/README.md#openapi-generation-typed-contract)).
+- **OpenAPI:** Swagger UI at `/swagger-ui.html` on the API and through `web` (off in the `prod` profile, on in the prod overlay, published at `https://code-branchhub.jotaeme.dev/swagger-ui.html`). The SPA generates its typings from `/v3/api-docs` (see the [frontend README](../frontend/README.md#openapi-generation-typed-contract)).
 
 ## Release notes
 
