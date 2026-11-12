@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-branchhub}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-branchhub}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-18095}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
@@ -23,8 +23,6 @@ services:
     image: apache/kafka:3.8.0
     container_name: branch-hub-kafka
     restart: unless-stopped
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -71,7 +69,7 @@ services:
       APP_SUPER_ADMIN_EMAIL: ${APP_SUPER_ADMIN_EMAIL:-admin@example.com}
       APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:?APP_SUPER_ADMIN_PASSWORD is required in .env}
     ports:
-      - "${API_PORT:-8081}:8080"
+      - "127.0.0.1:${API_PORT:-18091}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
@@ -89,7 +87,7 @@ services:
       app:
         condition: service_healthy
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "127.0.0.1:${WEB_PORT:-18090}:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1"]
       interval: 15s
@@ -113,7 +111,7 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
     ports:
-      - "9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-18093}:9090"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy >/dev/null 2>&1"]
       interval: 15s
@@ -129,8 +127,6 @@ services:
       - ./monitoring/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
     command:
       - "--config.file=/etc/blackbox_exporter/config.yml"
-    ports:
-      - "9115:9115"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9115/-/healthy"]
       interval: 15s
@@ -147,7 +143,7 @@ services:
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
     ports:
-      - "9093:9093"
+      - "127.0.0.1:${ALERTMANAGER_PORT:-18094}:9093"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy >/dev/null 2>&1"]
       interval: 15s
@@ -169,7 +165,7 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-18092}:3000"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -qE '\"database\": *\"ok\"'"]
       interval: 20s

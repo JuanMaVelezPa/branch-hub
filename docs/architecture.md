@@ -24,7 +24,7 @@ flowchart LR
 
     discord([Discord])
 
-    browser -- "SPA, /api, /actuator,<br/>/swagger-ui, /v3/*" --> web
+    browser -- "SPA, /api, /swagger-ui,<br/>/v3/*, /actuator/health" --> web
     web -- "reverse proxy" --> app
     app -- "JPA" --> postgres
     app -- "outbox relay publishes,<br/>consumer reads" --> kafka
@@ -39,8 +39,8 @@ flowchart LR
     grafana -- "queries" --> prometheus
 ```
 
-- **`web`** serves the SPA and proxies `/api`, `/actuator`, `/swagger-ui` and `/v3/*` to `app`, so the browser stays same-origin. Its CSP allows only `script-src 'self'`.
-- **`app`** is the only service that talks to PostgreSQL and Kafka. It is also reachable directly on its own host port for tools such as Postman and Swagger UI.
+- **`web`** serves the SPA and proxies `/api`, `/swagger-ui`, `/v3/*` and `/actuator/health` to `app`, so the browser stays same-origin. Other `/actuator/*` paths return 404. Its CSP allows only `script-src 'self'`.
+- **`app`** is the only service that talks to PostgreSQL and Kafka. It is also reachable directly on its own host port (`127.0.0.1:18091`) for tools such as Postman and Swagger UI. On the server only `web` and `grafana` join the `edge` network that `cloudflared` uses; see [getting-started.md](getting-started.md#server-mode-the-prod-overlay).
 - **Prometheus** scrapes the API job `branch-hub-api` (`app:8080`) and uses the Blackbox exporter to probe Grafana, Kafka and PostgreSQL. The rules in group `branch-hub-alerts` go to Alertmanager, which posts to Discord.
 - **Grafana** ships a provisioned dashboard, `branch-hub-observability`, built on the custom `app_*` metrics.
 

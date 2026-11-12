@@ -4,6 +4,22 @@ All notable changes to Branch Hub are documented here. Version labels **`v1.x`**
 
 ## Unreleased
 
+**Published Branch Hub through the shared ingress (SPEC 04).** Configuration only: no application code or API contract change.
+
+- **Host ports:** every port in `docker-compose.yml` is bound to `127.0.0.1` in the block 18090–18095: web `WEB_PORT=18090`, API `API_PORT=18091`, Grafana `GRAFANA_PORT=18092`, Prometheus `PROMETHEUS_PORT=18093`, Alertmanager `ALERTMANAGER_PORT=18094`, PostgreSQL `POSTGRES_PORT=18095`. Kafka (9092) and the Blackbox exporter (9115) no longer publish a host port. **Action needed:** remove `WEB_PORT=8080` / `API_PORT=8081` from your `.env`, recreate the stack and update SSH forwards and database clients (see [getting started](docs/getting-started.md#ports-and-urls)).
+- **Prod overlay** (`docker-compose.prod.yml`), the stack the server runs through `COMPOSE_FILE` in its `.env`:
+  - `web` and `grafana` join the external `edge` network that `cloudflared` uses. Public URLs: `https://code-branchhub.jotaeme.dev` (SPA, `/api`, Swagger) and `https://code-branchhub-grafana.jotaeme.dev`.
+  - `app`: `Secure` refresh cookie, Swagger and API docs on, actuator `health,info,prometheus` open on the private network so Prometheus can scrape it.
+  - Grafana: anonymous `Viewer`, login form and sign-up disabled, `GF_SERVER_ROOT_URL` from `GRAFANA_PUBLIC_URL`.
+- **Nginx** (`frontend/nginx.conf`):
+  - `X-Forwarded-Proto` keeps the incoming header (`https` from `cloudflared`) and falls back to `$scheme`.
+  - `location ^~ /swagger-ui/` fixes Swagger through `web`: its assets used to fall into the static-asset regex and return 404.
+  - Only `/actuator/health` is proxied; every other `/actuator/*` path returns 404.
+- **Alertmanager:** the committed `alertmanager.yml` reads the Discord webhook from `webhook_url_file`, like the local copy, so the prod overlay sends real alerts.
+- **Env templates:** `.env.example` and `.env.prod.example` list the block ports (commented, the compose file holds the defaults). `.env.prod.example` adds `COMPOSE_FILE`, `SECURITY_COOKIES_SECURE=true` and `GRAFANA_PUBLIC_URL`. `.gitignore` now also ignores `.env*.bak` (the server keeps its old dev `.env` as `.env.dev.bak`).
+- **Dev tooling:** `npm start` proxies to `http://localhost:18091`, Playwright defaults to `http://localhost:18090`, `openapi:generate` reads `http://localhost:18091/v3/api-docs`, and the Postman `baseUrl` is `http://localhost:18091`.
+- **Docs:** ports, the server mode and the `edge` prerequisite in [getting started](docs/getting-started.md#server-mode-the-prod-overlay); what is public and why in [security](docs/security.md#8-what-is-public-on-the-published-demo-and-why).
+
 **Gave the SPA its own visual identity (SPEC 03).** Frontend only: no backend or API contract change.
 
 - **Identity:**

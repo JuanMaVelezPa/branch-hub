@@ -112,7 +112,7 @@ Angular **22** exists as **prerelease** (`next`); this project stays on **21.x s
 ## Prerequisites
 
 - Node.js 20+ (tested with Node 22)
-- For local dev: API at `http://localhost:8080` when you run Spring alone (Gradle). With **Docker Compose**, use the SPA at **http://localhost:8080** (`web`) and the API **direct** at **http://localhost:8081** (`app`); the bundled UI still uses relative `/api` on :8080, which Nginx forwards to Spring.
+- For local dev: `npm start` proxies `/api` to the **Docker Compose** API at `http://localhost:18091` (`proxy.conf.json`). The Compose SPA is at **http://127.0.0.1:18090** (`web`) and calls relative `/api`, which Nginx forwards to Spring. To use a `./gradlew bootRun` API on port 8080 instead, change the proxy `target` locally (do not commit it).
 
 ## Install
 
@@ -147,7 +147,8 @@ Aligned with Angular’s deployment guide: **multi-stage image** — Node stage 
 
 - **Build stage:** `ENV NODE_ENV=development` so `npm ci` installs **devDependencies** (Tailwind, Postcss, DaisyUI, `@angular/build`, etc.); without this, production installs can skip them and ship broken CSS.
 - **Runtime:** `nginx.conf` serves `browser/` output, uses **`try_files $uri $uri/ /index.html`** for SPA deep links, and a regex location so real **`.css` / `.js`** files never fall back to `index.html` (which would break MIME types).
-- **Compose:** from the repo root, service **`web`** publishes **:8080**; API **`app`** is **:8081** for direct access; the UI still calls `/api` on **:8080** through the nginx proxy.
+- **Compose:** from the repo root, service **`web`** publishes **127.0.0.1:18090**; API **`app`** is **127.0.0.1:18091** for direct access; the UI still calls `/api` on its own origin through the nginx proxy.
+- **Proxy list:** nginx proxies `/api/`, `^~ /swagger-ui/` (prefix match so Swagger's `.js`/`.css` skip the static-asset regex), `= /swagger-ui.html`, `/v3/` and `= /actuator/health` to `app:8080`. Every other `/actuator/*` path returns 404. `X-Forwarded-Proto` keeps the incoming header when one is present (`cloudflared` sends `https`) and falls back to `$scheme`.
 - **Security headers:** `nginx.conf` sets **CSP** (strict `script-src 'self'` — theme bootstrap lives in `public/theme-init.js`, not inline in `index.html`), **X-Content-Type-Options**, **Referrer-Policy**, **Permissions-Policy**. Adjust **`connect-src`** if the browser must talk to other origins.
 
 ```bash
@@ -174,7 +175,7 @@ npm run test:e2e:admin-smoke
 ```
 
 Defaults:
-- `E2E_BASE_URL=http://localhost:8080`
+- `E2E_BASE_URL=http://localhost:18090`
 - `E2E_USER=admin@example.com`
 - `E2E_PASSWORD=Admin_ChangeMe_2026!`
 
@@ -184,7 +185,7 @@ Playwright does not support every Linux distribution (for example Ubuntu 26.04).
 
 ```bash
 docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$PWD":/work -w /work -e E2E_BASE_URL=http://localhost:8080 -e E2E_PASSWORD \
+  -v "$PWD":/work -w /work -e E2E_BASE_URL=http://localhost:18090 -e E2E_PASSWORD \
   mcr.microsoft.com/playwright:v1.59.1-noble \
   sh -c "npm run test:e2e:smoke && npm run test:e2e:admin-smoke && npm run test:e2e:screenshots"
 ```
@@ -231,14 +232,14 @@ Extra dictionary keys used by the shell: e.g. **`browserTabBrand`** (suffix for 
 Generate/update the frontend OpenAPI typings from the backend:
 
 ```bash
-# default source: http://localhost:8081/v3/api-docs
+# default source: http://localhost:18091/v3/api-docs
 npm run openapi:generate
 ```
 
 Optional custom spec URL:
 
 ```bash
-OPENAPI_SPEC_URL=http://localhost:8081/v3/api-docs npm run openapi:generate
+OPENAPI_SPEC_URL=http://localhost:18091/v3/api-docs npm run openapi:generate
 ```
 
 | Artifact | Role |

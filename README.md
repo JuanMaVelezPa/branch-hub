@@ -2,6 +2,13 @@
 
 A full-stack app to manage company branches, built like a production system: Spring Boot 4 + Angular 21, secure by default, observable end to end.
 
+## Live demo
+
+- **App:** [code-branchhub.jotaeme.dev](https://code-branchhub.jotaeme.dev). Swagger UI is at [/swagger-ui.html](https://code-branchhub.jotaeme.dev/swagger-ui.html) on the same host.
+- **Grafana (read-only, no login):** [code-branchhub-grafana.jotaeme.dev](https://code-branchhub-grafana.jotaeme.dev)
+
+Both run on the prod overlay behind a Cloudflare Tunnel. Only the owner can log in to the app for now; a public demo account is planned.
+
 ## Highlights
 
 - **Clean Architecture** in the API: `domain`, `application` (use cases and ports), `infrastructure` (adapters) and `entrypoints`, with no Spring Data or web types in the use cases.
@@ -59,7 +66,7 @@ cp .env.example .env    # set JWT_SECRET and APP_SUPER_ADMIN_PASSWORD
 docker compose up -d --build
 ```
 
-Then open the SPA at http://localhost:8080 (API: http://localhost:8081, Grafana: http://localhost:3000). The full guide, including the Alertmanager files, the default login, running without Docker and the tests, is in [docs/getting-started.md](docs/getting-started.md).
+Then open the SPA at http://127.0.0.1:18090 (API: http://127.0.0.1:18091, Grafana: http://127.0.0.1:18092). Every host port is bound to `127.0.0.1` in the block 18090–18095. The full guide, including the Alertmanager files, the default login, running without Docker and the tests, is in [docs/getting-started.md](docs/getting-started.md).
 
 ## Project structure
 
@@ -70,7 +77,7 @@ branch-hub/
 ├── monitoring/         # Prometheus, Alertmanager, Blackbox, Grafana
 ├── docs/               # Architecture, getting started, security, roadmap, Postman
 ├── docker-compose.yml  # Full local stack (project "branch-hub")
-└── docker-compose.prod.yml
+└── docker-compose.prod.yml  # Prod overlay: the published server stack
 ```
 
 ## Documentation

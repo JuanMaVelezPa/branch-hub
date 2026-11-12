@@ -11,7 +11,7 @@ route:
 receivers:
   - name: "discord-default"
     discord_configs:
-      - webhook_url: "https://discord.com/api/webhooks/REPLACE_WITH_YOUR_WEBHOOK"
+      - webhook_url_file: /run/secrets/discord_webhook_url
         send_resolved: true
         title: "[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}"
         message: |

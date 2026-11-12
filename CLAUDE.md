@@ -13,26 +13,28 @@ Detailed docs are in `backend/README.md`, `frontend/README.md` and `docs/` (`doc
 ```bash
 # Full stack (needs .env; JWT_SECRET and APP_SUPER_ADMIN_PASSWORD are required)
 cp .env.example .env
-docker compose up -d --build          # SPA :${WEB_PORT:-8080} (nginx), API :${API_PORT:-8081}, Postgres :5433, Grafana :3000, Prometheus :9090
+docker compose up -d --build          # all on 127.0.0.1: SPA :18090 (nginx), API :18091, Grafana :18092, Prometheus :18093, Alertmanager :18094, Postgres :18095
 docker compose logs -f web app        # Compose project `branch-hub`, containers `branch-hub-*`, database `branchhub`
 
 # Backend (from backend/)
 ./gradlew clean test
 ./gradlew test --tests BranchFlowIntegrationTest                 # single class
 ./gradlew test --tests 'dev.jotaeme.branchhub.application.branch.*'  # package
-./gradlew bootRun                                                # needs DB_URL=jdbc:postgresql://localhost:5433/branchhub when using the Compose Postgres (see docs/getting-started.md)
+./gradlew bootRun                                                # needs DB_URL=jdbc:postgresql://localhost:18095/branchhub when using the Compose Postgres (see docs/getting-started.md)
 RUN_ALERTMANAGER_TEST=true ./gradlew test --tests AlertmanagerDiscordIntegrationTest  # opt-in
 
 # Frontend (from frontend/)
 npm ci
-npm start                     # http://localhost:4200, proxies /api to http://localhost:8080 (the API run locally)
+npm start                     # http://localhost:4200, proxies /api to http://localhost:18091 (the Compose API)
 npm run build                 # production build + scripts/patch-index-html.mjs (do not skip the patch step)
 npm test                      # Vitest via ng test
 npx ng test --include src/app/path/to/file.spec.ts   # single spec
-npm run test:e2e:smoke        # Playwright, against E2E_BASE_URL (default http://localhost:8080, i.e. Compose)
+npm run test:e2e:smoke        # Playwright, against E2E_BASE_URL (default http://localhost:18090, i.e. Compose)
 npm run test:e2e:admin-smoke
-npm run openapi:generate      # regenerate typings from http://localhost:8081/v3/api-docs (backend must be running)
+npm run openapi:generate      # regenerate typings from http://localhost:18091/v3/api-docs (backend must be running)
 ```
+
+Host ports live in the block 18090–18099, all bound to `127.0.0.1`; Kafka and blackbox have none. The server runs a single stack, the published demo, on the prod overlay (its `.env` sets `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`), so day-to-day dev runs `npm start` / `bootRun` against the stack's host ports instead of a second stack.
 
 Every test that starts a Spring context extends `support/AbstractPostgresIntegrationTest`, which shares one Testcontainers PostgreSQL (wired with `@ServiceConnection`) across the whole run; Flyway builds its schema and there is no H2. Docker must be running for `./gradlew test`. The test `application.properties` replaces the main one, so it sets `ddl-auto=validate` itself. The test config (`src/test/resources/application.properties`) seeds a SUPER_ADMIN with `admin` / `admin123` and disables notifications.
 
@@ -51,7 +53,7 @@ Key flows that span several layers:
 - **Pagination:** `PageRequestParams` (HTTP, validated) → `PaginationBinding` → `PageQuery` plus a per-resource `SortPolicy` (e.g. `BranchListPagination.SORT_POLICY`). The repository returns a `PageSlice`, the use case a `PageResult`, and `PageMapper` turns it into `PagedResponse`. `SpringPageRequests` is the only place that builds a Spring `PageRequest`. Defaults: size 10, max 100, `sort=prop,asc|desc`.
 - **Errors** are RFC 7807 Problem Details (`type`, `title`, `status`, `detail`, `instance`, `timestamp`, optional `errors`).
 - **Auth:** login returns a short-lived access JWT in the response body and sets an HttpOnly refresh cookie. `POST /api/v1/auth/refresh|logout` act on that cookie. Access rules: `/api/v1/admin/**` is SUPER_ADMIN only (enforced in the security config and by `@PreAuthorize` on admin controllers), `/api/v1/branches/**` allows SUPER_ADMIN or APP_ADMIN, and `GET /api/v1/me` needs any authenticated user. On startup the app seeds a SUPER_ADMIN (`APP_SUPER_ADMIN_EMAIL`/`_PASSWORD`) if no account with that email exists.
-- **Profiles:** `docker`, `prod` (no Swagger, reduced actuator) and `debug` in `src/main/resources/application-*.properties`. A production-like stack is `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build`.
+- **Profiles:** `docker`, `prod` (no Swagger, reduced actuator) and `debug` in `src/main/resources/application-*.properties`. The prod overlay `docker-compose.prod.yml` turns Swagger back on, exposes `prometheus` on the private network, sets the `Secure` cookie, makes Grafana anonymous Viewer and puts `web` and `grafana` on the external `edge` network (published through `cloudflared` as `code-branchhub.jotaeme.dev` and `code-branchhub-grafana.jotaeme.dev`). Off the server: `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build`.
 - **Flyway** migrations live in `src/main/resources/db/migration/V{n}__desc.sql`. Flyway owns the schema in every profile (`spring-boot-starter-flyway`); Hibernate only runs `ddl-auto=validate`. `V1__init_schema.sql` is the frozen baseline: never edit an applied `V*` script, add a new version instead.
 - Custom Micrometer metrics use the `app_*` prefix (see `backend/README.md`). Prometheus alert rules in `monitoring/` (group `branch-hub-alerts`, job `branch-hub-api`) depend on them, so renaming a metric breaks alerts. The Grafana dashboard is `monitoring/grafana/dashboards/branch-hub-observability.json`.
 
@@ -63,7 +65,7 @@ The SPA uses standalone components, signals for local state and lazy `loadChildr
 - **HTTP interceptors** (`app.config.ts`) run in a fixed order: `apiInterceptor` → `authErrorInterceptor` → `refreshInterceptor`. On a 401, `refreshInterceptor` refreshes through the cookie (using `HttpBackend`) and retries the request once. The access token is kept only in memory.
 - **Server state** goes through TanStack Query (`core/query/query-client.factory.ts`: 5 min `staleTime`, refetch on window focus). Mutations invalidate the related query keys, and login/logout clear user-scoped queries such as `me`.
 - **i18n** uses an in-house `I18nService` with static `en`/`es` dictionaries, not ngx-translate or `$localize`. Add new strings to both locales. Route `data['titleKey']` sets the tab title. Persisted preferences use the `branch-hub.pref.v1` prefix (`core/preferences/preference-keys.ts`, kept in sync with `public/theme-init.js`).
-- **CSP:** `frontend/nginx.conf` sets a strict `script-src 'self'`, so inline scripts are not allowed (the theme bootstrap lives in `public/theme-init.js`). If the browser needs to reach new origins, update `connect-src`. Nginx also proxies `/api`, `/actuator`, `/swagger-ui` and `/v3/*` to the `app` container so the browser stays same-origin.
+- **CSP:** `frontend/nginx.conf` sets a strict `script-src 'self'`, so inline scripts are not allowed (the theme bootstrap lives in `public/theme-init.js`). If the browser needs to reach new origins, update `connect-src`. Nginx also proxies `/api`, `/swagger-ui`, `/v3/*` and only `/actuator/health` to the `app` container so the browser stays same-origin; every other `/actuator/*` path returns 404, and `X-Forwarded-Proto` keeps the scheme `cloudflared` sends.
 
 ## Workflow conventions
 
