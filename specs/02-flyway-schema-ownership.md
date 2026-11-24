@@ -1,6 +1,6 @@
 # SPEC 02 — Make Flyway own the database schema
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 01
 > **Date:** 2026-11-05
 > **Objective:** Make Flyway create the database schema on every startup, with Hibernate only validating it, and run every Spring context test against a real PostgreSQL built by those migrations.

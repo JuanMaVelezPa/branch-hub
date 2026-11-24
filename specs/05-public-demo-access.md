@@ -1,6 +1,6 @@
 # SPEC 05 — Public demo access
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 04
 > **Date:** 2026-11-11
 > **Objective:** Let any visitor of `code-branchhub.jotaeme.dev` try the app with a public demo APP_ADMIN account, whose credentials and tool links the login page shows from a new public endpoint, on sample data that a scheduled job resets every night.
@@ -14,7 +14,8 @@ Public write access means visitors can rename, add or deactivate branches. The d
 What exists today:
 
 - `IamBootstrapRunner` seeds roles and one SUPER_ADMIN (which also has APP_ADMIN) from `APP_SUPER_ADMIN_EMAIL`/`_PASSWORD` when no account with that email exists.
-- APP_ADMIN can list, read, create, update and deactivate branches. Branches have no delete. Users have no self-service password change, so a visitor cannot lock the demo account.
+- APP_ADMIN can list, read, create, update and deactivate branches. Branches have no delete. Users have no self-service password change, so a visitor cannot change the demo password.
+- Login lockout (`JpaLoginAttemptAdapter`, `app.security.login.*`) locks any account for 15 minutes after 5 wrong passwords, through `iam_user.failed_login_count` and `locked_until`. With a public demo email, any visitor could lock the demo account again and again.
 - Scheduling is already enabled (`@EnableScheduling` in `KafkaOutboxConfig`, used by the outbox relay).
 - Use cases are plain classes wired in `ApplicationUseCaseConfig`. `application` must not depend on Spring Data or web types.
 
@@ -24,6 +25,7 @@ What exists today:
 
 - **Demo configuration** (`app.demo.*`), all off by default. The prod overlay turns them on from `.env`.
 - **Demo user seeding.** When `app.demo.enabled=true`, a runner creates the demo user if missing: email and password from env, email verified, enabled, role **APP_ADMIN only**.
+- **Lockout exemption.** When `app.demo.enabled=true`, a failed login for the demo email does not count toward the lockout. Every other account keeps the lockout unchanged.
 - **Public endpoint** `GET /api/v1/public/demo`, `permitAll`:
   - Enabled: `200` with `{ email, password, grafanaUrl }`.
   - Disabled: `404` Problem Details.
@@ -35,7 +37,7 @@ What exists today:
 - **Nightly reset job**, enabled only by `app.demo.reset.enabled=true`, cron `app.demo.reset.cron` (default `0 0 4 * * *`) in zone `app.demo.reset.zone` (default `UTC`). In one transaction it:
   1. Deletes every row of `processed_event`, `outbox_event` and `branch`.
   2. Inserts the sample branches.
-  3. Restores the demo user: enabled, password from env, roles exactly `{APP_ADMIN}`. If the user is missing, it is recreated.
+  3. Restores the demo user: enabled, password from env, `failed_login_count = 0`, `locked_until = NULL`, roles exactly `{APP_ADMIN}`. If the user is missing, it is recreated.
 - **Seed on startup:** when the reset is enabled and `branch` is empty at `ApplicationReadyEvent`, the same reset runs once, so a fresh volume starts with sample data. A non-empty table is left alone, so a deploy does not wipe visitors' changes before the night.
 - **Metric** `app_demo_resets_total{outcome="success|failure"}` and one INFO log line per reset (or ERROR with the cause).
 - **Contract follow-up:** `npm run openapi:generate`, a `DemoAccess` alias in `api-types.ts`, an `ApiPaths` entry, and a "Public demo" request in the Postman collection.
@@ -101,6 +103,7 @@ With `app.demo.enabled=true`, a blank email or password fails startup with a cle
 | `backend/.../infrastructure/persistence/demo/ClasspathDemoSampleDataAdapter.java` | Reads `demo/demo-branches.csv`. |
 | `backend/src/main/resources/demo/demo-branches.csv` | The 12 sample branches. |
 | `backend/.../infrastructure/security/DemoUserBootstrapRunner.java` | Creates the demo user at startup when enabled and missing. Runs after `IamBootstrapRunner` (roles exist). |
+| `backend/.../infrastructure/security/JpaLoginAttemptAdapter.java` | `onFailedLogin` skips the demo email when the demo is on (reads `DemoProperties`). |
 | `backend/.../infrastructure/config/ApplicationUseCaseConfig.java` | Wires the two use cases. |
 | `backend/.../infrastructure/config/SecurityConfig.java` | `permitAll` on `GET /api/v1/public/demo`. |
 | `backend/.../entrypoints/rest/PublicDemoController.java` + `dto/DemoAccessResponse.java` | The endpoint. |
@@ -120,9 +123,9 @@ The sample data format (CSV vs SQL) and these class names may be adjusted during
 
 Each step leaves the app building and the tests green.
 
-1. **Config and demo user.** `DemoProperties`, the properties, `DemoUserBootstrapRunner`. Test (Testcontainers): with demo on, the user exists, is enabled, and has exactly `{APP_ADMIN}`. A second start does not duplicate it. With demo off, nothing is created.
+1. **Config and demo user.** `DemoProperties`, the properties, `DemoUserBootstrapRunner`. Test (Testcontainers): with demo on, the user exists, is enabled, and has exactly `{APP_ADMIN}`. A second start does not duplicate it. With demo off, nothing is created. Lockout: with demo on, 6 wrong passwords for the demo email leave it unlocked and the correct password still logs in. Another account still locks after 5. With demo off, the demo email locks like any other.
 2. **Public endpoint.** `GetDemoAccessUseCase`, `PublicDemoController`, DTO, `permitAll`. Tests: enabled → 200 with the three fields and no auth. Disabled → 404 Problem Details.
-3. **Reset use case and adapters.** Ports, `ResetDemoDataUseCase`, the JDBC and classpath adapters, the CSV. Test: after creating an extra branch, renaming one, deactivating one, adding an outbox row, disabling the demo user and adding SUPER_ADMIN to it, the reset leaves exactly the 12 sample branches, empty `outbox_event` and `processed_event`, and the demo user enabled with `{APP_ADMIN}` and the env password (login works). The SUPER_ADMIN, other users and `iam_audit_log` are unchanged.
+3. **Reset use case and adapters.** Ports, `ResetDemoDataUseCase`, the JDBC and classpath adapters, the CSV. Test: after creating an extra branch, renaming one, deactivating one, adding an outbox row, disabling the demo user, setting its `failed_login_count` and `locked_until`, and adding SUPER_ADMIN to it, the reset leaves exactly the 12 sample branches, empty `outbox_event` and `processed_event`, and the demo user enabled and unlocked with `{APP_ADMIN}` and the env password (login works). The SUPER_ADMIN, other users and `iam_audit_log` are unchanged.
 4. **Scheduler, startup seed and metric.** `DemoDataResetScheduler`. Tests: with an empty `branch` table and reset on, startup seeds 12 branches. With a non-empty table, startup leaves it. `app_demo_resets_total{outcome="success"}` increments after a reset. The cron itself is not waited on: the test calls the scheduled method.
 5. **Contract and SPA.** Run the backend, `npm run openapi:generate` (with `OPENAPI_SPEC_URL=http://localhost:18091/v3/api-docs`), add the alias, `ApiPaths`, service, query key, login card and i18n strings. Specs: card hidden on 404 and on network error, shown with values on 200, "Fill in" sets both form fields, Grafana link hidden when `grafanaUrl` is blank. Check: `npm test` and `npm run build` pass.
 6. **Prod overlay and docs.** `DEMO_*` in `docker-compose.prod.yml` and `.env.prod.example`, Postman request, docs listed in Scope.
@@ -139,6 +142,7 @@ Each step leaves the app building and the tests green.
 - [ ] Locally with the demo off, the login page shows no card and no error.
 - [ ] After a fresh volume, the branch list shows exactly the 12 sample branches (`BR-001` to `BR-012`, 2 inactive).
 - [ ] After changing data as the demo user and triggering the reset (integration test, or a temporary `DEMO_RESET_CRON` a few minutes ahead on the server), the list is back to the 12 sample branches and the demo login still works.
+- [ ] Six wrong passwords for the demo email do not lock it: the next login with the right password succeeds. Other accounts still lock after 5.
 - [ ] The reset does not touch the SUPER_ADMIN, other users, roles or `iam_audit_log`.
 - [ ] `app_demo_resets_total` is visible at `http://127.0.0.1:18093` after a reset.
 - [ ] `./gradlew clean test`, `npm test` and `npm run build` pass. `openapi.generated.ts` was regenerated, not edited by hand.
@@ -152,7 +156,8 @@ Each step leaves the app building and the tests green.
 - **Grafana URL from the same endpoint**, so local dev, where Grafana is not public, shows no dead link.
 - **Spring `@Scheduled` job**, over a host crontab with a SQL script (lives outside the app and needs host setup) or a scheduler container (one more container). It is versioned, testable with Testcontainers, and uses the scheduling that is already enabled.
 - **Reset by deleting rows, not through the use cases or the outbox.** The reset is maintenance, not a domain event, so it publishes nothing to Kafka. Clearing `outbox_event` and `processed_event` keeps the outbox consistent with the reset table.
-- **The reset also restores the demo user** (enabled, password, `{APP_ADMIN}`). A SUPER_ADMIN mistake, such as disabling it or adding roles, fixes itself overnight.
+- **The demo user is exempt from the login lockout**, over keeping it (any visitor could lock the demo in repeatable 15-minute windows) or leaving it to a later rate-limiting spec. The lockout protects against password guessing, and this password is public, so the exemption gives nothing away. The exemption lives in the infrastructure adapter, so `application` does not change.
+- **The reset also restores the demo user** (enabled, unlocked, password, `{APP_ADMIN}`). A SUPER_ADMIN mistake, such as disabling it or adding roles, fixes itself overnight.
 - **Seed on startup only when `branch` is empty**, so a fresh volume has data, but a redeploy does not wipe what visitors did that day.
 - **Default cron 04:00 UTC**, overridable by `DEMO_RESET_CRON` and `DEMO_RESET_ZONE`.
 - **Split from SPEC 04.** SPEC 04 is configuration only. This spec holds the Java and Angular feature work.
