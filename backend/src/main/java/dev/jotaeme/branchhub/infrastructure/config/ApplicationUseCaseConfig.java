@@ -22,8 +22,19 @@ import dev.jotaeme.branchhub.application.security.usecase.AdminListAuditLogUseCa
 import dev.jotaeme.branchhub.application.security.usecase.AdminListUsersUseCase;
 import dev.jotaeme.branchhub.application.security.usecase.AdminSetUserEnabledUseCase;
 import dev.jotaeme.branchhub.application.security.usecase.AdminSetUserRolesUseCase;
+import dev.jotaeme.branchhub.application.demo.model.DemoAccess;
+import dev.jotaeme.branchhub.application.demo.port.DemoDataPort;
+import dev.jotaeme.branchhub.application.demo.port.DemoSampleDataPort;
+import dev.jotaeme.branchhub.application.demo.usecase.GetDemoAccessUseCase;
+import dev.jotaeme.branchhub.application.demo.usecase.ResetDemoDataUseCase;
+import dev.jotaeme.branchhub.infrastructure.demo.DemoProperties;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.TransactionManager;
+import org.springframework.transaction.interceptor.MatchAlwaysTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 @Configuration
 public class ApplicationUseCaseConfig {
@@ -97,5 +108,38 @@ public class ApplicationUseCaseConfig {
     @Bean
     AdminSetUserRolesUseCase adminSetUserRolesUseCase(AdminUserPort adminUserPort, IamAuditPort auditPort) {
         return new AdminSetUserRolesUseCase(adminUserPort, auditPort);
+    }
+
+    @Bean
+    GetDemoAccessUseCase getDemoAccessUseCase(DemoProperties demoProperties) {
+        DemoAccess access = demoProperties.enabled()
+                ? new DemoAccess(
+                        demoProperties.user().email(),
+                        demoProperties.user().password(),
+                        demoProperties.grafanaUrl())
+                : null;
+        return new GetDemoAccessUseCase(access);
+    }
+
+    /**
+     * Only exists while the demo is on: the reset restores the demo user. Every public method runs
+     * in one transaction, set here so the use case stays free of Spring types.
+     */
+    @Bean
+    @ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true")
+    ResetDemoDataUseCase resetDemoDataUseCase(
+            DemoDataPort demoDataPort,
+            DemoSampleDataPort demoSampleDataPort,
+            DemoProperties demoProperties,
+            TransactionManager transactionManager) {
+        var target = new ResetDemoDataUseCase(
+                demoDataPort,
+                demoSampleDataPort,
+                demoProperties.user().email(),
+                demoProperties.user().password());
+        var proxy = new ProxyFactory(target);
+        proxy.setProxyTargetClass(true);
+        proxy.addAdvice(new TransactionInterceptor(transactionManager, new MatchAlwaysTransactionAttributeSource()));
+        return (ResetDemoDataUseCase) proxy.getProxy();
     }
 }

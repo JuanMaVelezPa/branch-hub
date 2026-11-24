@@ -136,7 +136,7 @@ The server runs the prod overlay behind the `server-tuf` Cloudflare Tunnel. Clou
 
 | Public URL | Served by | What a visitor can reach | Why |
 |------------|-----------|--------------------------|-----|
-| `https://code-branchhub.jotaeme.dev` | `branch-hub-web` (Nginx) | The SPA, `/api/**` (same rules as everywhere: login is public, the rest needs a JWT), Swagger UI and `/v3/api-docs`, and `/actuator/health` | The project exists to show the code and the API. Swagger on the same origin means "Try it out" needs no CORS. |
+| `https://code-branchhub.jotaeme.dev` | `branch-hub-web` (Nginx) | The SPA, `/api/**` (same rules as everywhere: login and `GET /api/v1/public/demo` are public, the rest needs a JWT), Swagger UI and `/v3/api-docs`, and `/actuator/health` | The project exists to show the code and the API. Swagger on the same origin means "Try it out" needs no CORS. |
 | `https://code-branchhub-grafana.jotaeme.dev` | `branch-hub-grafana` | Every dashboard, read-only, as anonymous `Viewer`; no login form, no sign-up | Show the observability stack. On its own host so a Grafana XSS cannot call `/api/v1/auth/refresh` with the SPA's refresh cookie, and the SPA's strict CSP needs no exceptions. |
 
 What stays private:
@@ -147,8 +147,18 @@ What stays private:
 
 Transport and cookies: the refresh cookie is `Secure` and `HttpOnly` on the prod overlay. Nginx forwards the `X-Forwarded-Proto: https` that `cloudflared` sends, so Spring builds `https://` URLs (for example the Swagger server URL). Browsers treat `localhost` and `127.0.0.1` as secure contexts, so the owner can still log in on `http://127.0.0.1:18090`.
 
+### The public demo account (SPEC 05)
+
+Visitors can sign in with a shared demo account. Its email and password are public on purpose: `GET /api/v1/public/demo` (no auth) returns them and the login page shows them. The endpoint answers 404 Problem Details unless `DEMO_ENABLED=true`, so only the published server shows them.
+
+- **Role: `APP_ADMIN` only.** It can list, read, create, update and deactivate branches. It cannot reach `/api/v1/admin/**` (403) or the `/admin` pages, cannot delete anything (branches have no delete), and cannot change its password (there is no self-service password change). The demo user must never get another role: the seed creates it with `APP_ADMIN` alone and the weekly reset puts its roles back to exactly `{APP_ADMIN}`.
+- **Weekly reset** (`DEMO_RESET_CRON` / `DEMO_RESET_ZONE`, default Saturdays 10:00 `America/Bogota`). In one transaction it deletes every `branch`, `outbox_event` and `processed_event` row, inserts the 12 sample branches, and restores the demo user (enabled, password from `.env`, unlocked, `{APP_ADMIN}`). It writes rows directly and publishes nothing to Kafka. It never touches the SUPER_ADMIN, other users, roles or `iam_audit_log`. On a fresh volume (empty `branch` table) it also runs once at startup.
+- **No login lockout for the demo email.** The lockout protects against password guessing, and this password is public, so it would only let one visitor lock everyone else out for 15 minutes. Failed logins for the demo email are not counted while the demo is on; every other account keeps the lockout.
+- **The real demo password lives only in the server `.env`.** `.env.prod.example` holds a placeholder. With `DEMO_ENABLED=true`, a blank `DEMO_USER_EMAIL` or `DEMO_USER_PASSWORD` stops the API at startup.
+
 Known gaps, accepted for now:
 
+- **Demo vandalism and spam writes.** Any visitor can rename or add branches (offensive names stay until the next reset), and a script could create many branches in a week. The weekly reset clears them; rate limiting or moderation is a future spec.
 - **No rate limit** on the public login. Mitigation: a strong `APP_SUPER_ADMIN_PASSWORD` and Cloudflare's default protections; rate limiting is a future spec.
 - **Grafana data is public.** Panels show service up/down and request rates, never secrets. New panels must keep it that way.
 

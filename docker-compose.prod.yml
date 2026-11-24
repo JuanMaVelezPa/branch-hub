@@ -12,6 +12,15 @@ services:
       SECURITY_COOKIES_SECURE: "true"
       SPRINGDOC_API_DOCS_ENABLED: "true"
       SPRINGDOC_SWAGGER_UI_ENABLED: "true"
+      # SPEC 05 public demo. Off unless .env turns it on; with DEMO_ENABLED=true a blank
+      # DEMO_USER_EMAIL or DEMO_USER_PASSWORD stops the API at startup (fail fast).
+      DEMO_ENABLED: ${DEMO_ENABLED:-false}
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      DEMO_GRAFANA_URL: ${DEMO_GRAFANA_URL:-}
+      DEMO_RESET_ENABLED: ${DEMO_RESET_ENABLED:-false}
+      DEMO_RESET_CRON: ${DEMO_RESET_CRON:-0 0 10 * * SAT}
+      DEMO_RESET_ZONE: ${DEMO_RESET_ZONE:-America/Bogota}
 
   web:
     networks: [default, edge]

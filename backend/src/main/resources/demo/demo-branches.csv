@@ -1,0 +1,13 @@
+code,name,city,active
+BR-001,Downtown Branch,Bogotá,true
+BR-002,North Branch,Bogotá,true
+BR-003,El Poblado Branch,Medellín,true
+BR-004,Laureles Branch,Medellín,true
+BR-005,Granada Branch,Cali,true
+BR-006,El Prado Branch,Barranquilla,true
+BR-007,Walled City Branch,Cartagena,true
+BR-008,Cabecera Branch,Bucaramanga,true
+BR-009,Circunvalar Branch,Pereira,true
+BR-010,Cable Branch,Manizales,true
+BR-011,Old Airport Branch,Cali,false
+BR-012,Riverside Branch,Neiva,false

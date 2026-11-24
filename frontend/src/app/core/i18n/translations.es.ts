@@ -46,6 +46,14 @@ export const es: Dictionary = {
   sessionExpiredToast: 'Tu sesión expiró. Inicia sesión de nuevo para continuar.',
   forbiddenAdmin: 'Necesitas el rol SUPER_ADMIN para abrir esta página.',
 
+  // Public demo card (login page)
+  demoTitle: 'Prueba la demo',
+  demoIntro: 'Entra como administrador de la app para crear, editar y desactivar sucursales. Los datos de ejemplo se restablecen cada semana.',
+  demoFillIn: 'Rellenar',
+  demoLinks: 'Herramientas de la demo',
+  demoApiDocs: 'Documentación de la API (Swagger)',
+  demoGrafana: 'Métricas (Grafana)',
+
   // Dashboard
   dashboardTitle: 'Panel',
   dashboardBranchesOne: '{n} sucursal en el registro.',

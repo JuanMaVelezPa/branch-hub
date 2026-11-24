@@ -29,6 +29,51 @@
   ],
   "item": [
     {
+      "name": "0. Public demo (no auth)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "description": "Public demo credentials and links for the login page (SPEC 05). No token. 200 when DEMO_ENABLED=true, 404 Problem Details otherwise.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/demo",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "demo"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 (demo on) or 404 (demo off)', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test('Has email, password and grafanaUrl', function () {",
+              "    pm.expect(json.email).to.be.a('string');",
+              "    pm.expect(json.password).to.be.a('string');",
+              "    pm.expect(json.grafanaUrl).to.be.a('string');",
+              "  });",
+              "} else {",
+              "  pm.test('404 is Problem Details', function () {",
+              "    pm.expect(pm.response.json().status).to.eql(404);",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Auth - Login",
       "request": {
         "method": "POST",
@@ -622,6 +667,29 @@
             "actuator",
             "metrics",
             "app_iam_admin_action_total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "15.2 Actuator - app_demo_resets_total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/metrics/app_demo_resets_total",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "metrics",
+            "app_demo_resets_total"
           ]
         }
       }

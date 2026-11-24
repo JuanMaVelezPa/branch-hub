@@ -123,7 +123,7 @@ npm ci
 
 ## Development
 
-`ng serve` is configured with **`proxy.conf.json`**: browser calls go to `http://localhost:4200/api/...` and are forwarded to the Spring app, so **JWT stays in memory** and the **refresh cookie** can be set on the same host as the dev server.
+`ng serve` is configured with **`proxy.conf.json`**: browser calls go to `http://localhost:4200/api/...` and are forwarded to the Spring app, so **JWT stays in memory** and the **refresh cookie** can be set on the same host as the dev server. It also forwards `/swagger-ui.html`, `/swagger-ui/**` and `/v3/**`, so Swagger UI (and the demo card's link) works on `http://localhost:4200/swagger-ui.html` too.
 
 ```bash
 npm start
@@ -213,6 +213,14 @@ Extra dictionary keys used by the shell: e.g. **`browserTabBrand`** (suffix for 
 | **Feedback** | `UiFeedbackService` toasts confirm every successful mutation with the action's verb (see design rule 4). Errors stay inline (`app-inline-alert`) with a title that names what failed. |
 | **Footer** | `shared/footer` — project name (**`footerPortfolio`**) + **`footerAuthor`** + links to jotaeme.dev, GitHub and LinkedIn. |
 
+## Public demo card (login)
+
+The login page asks `GET /api/v1/public/demo` once per page load (`core/demo/demo-api.service.ts`; query key `['demo-access']` in `demo-query.keys.ts`: no retry, 1 h `staleTime`, no refetch on focus).
+
+- **200:** a **Try the demo** card under the sign-in form shows the demo email and password, a **Fill in** button that fills both fields (it does not submit), and links to `/swagger-ui.html` and to Grafana (only when `grafanaUrl` is not blank). Both links open in a new tab.
+- **404** (demo off, e.g. local dev) **or any error:** nothing is shown, and no error either.
+- Strings: the `demo*` keys in both locales. Specs: `features/auth/login.component.spec.ts`, `core/demo/demo-api.service.spec.ts`.
+
 ## Reusable loading (shared UI)
 
 | Selector | Location | Purpose |
@@ -286,3 +294,4 @@ src/app/
 - Create: `POST /api/v1/branches` (`CreateBranchRequest`).
 - Detail / update / deactivate: `GET|PUT /api/v1/branches/{id}`, `PATCH .../deactivate`.
 - Login / logout / refresh: `POST /api/v1/auth/login|logout|refresh` — JWT kept in memory; refresh through the HttpOnly cookie.
+- Public demo: `GET /api/v1/public/demo` (no auth) → `DemoAccess` (`email`, `password`, `grafanaUrl`), or 404 when the demo is off (`ApiPaths.publicDemo`).

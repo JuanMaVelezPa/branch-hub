@@ -1,9 +1,9 @@
 # SPEC 05 — Public demo access
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 04
 > **Date:** 2026-11-11
-> **Objective:** Let any visitor of `code-branchhub.jotaeme.dev` try the app with a public demo APP_ADMIN account, whose credentials and tool links the login page shows from a new public endpoint, on sample data that a scheduled job resets every night.
+> **Objective:** Let any visitor of `code-branchhub.jotaeme.dev` try the app with a public demo APP_ADMIN account, whose credentials and tool links the login page shows from a new public endpoint, on sample data that a scheduled job resets every week.
 
 ## Why this spec exists
 
@@ -34,15 +34,18 @@ What exists today:
   - A link to `/swagger-ui.html`, and a link to Grafana when `grafanaUrl` is not blank.
   - Nothing is shown, and no error is shown, when the endpoint returns 404 or fails.
 - **Sample branches:** 12 branches (codes `BR-001` to `BR-012`, several cities, 2 inactive), in a committed SQL resource.
-- **Nightly reset job**, enabled only by `app.demo.reset.enabled=true`, cron `app.demo.reset.cron` (default `0 0 4 * * *`) in zone `app.demo.reset.zone` (default `UTC`). In one transaction it:
+- **Weekly reset job**, enabled only by `app.demo.reset.enabled=true`, cron `app.demo.reset.cron` (default `0 0 10 * * SAT`, Saturdays 10:00) in zone `app.demo.reset.zone` (default `America/Bogota`). In one transaction it:
   1. Deletes every row of `processed_event`, `outbox_event` and `branch`.
   2. Inserts the sample branches.
   3. Restores the demo user: enabled, password from env, `failed_login_count = 0`, `locked_until = NULL`, roles exactly `{APP_ADMIN}`. If the user is missing, it is recreated.
-- **Seed on startup:** when the reset is enabled and `branch` is empty at `ApplicationReadyEvent`, the same reset runs once, so a fresh volume starts with sample data. A non-empty table is left alone, so a deploy does not wipe visitors' changes before the night.
+- **Seed on startup:** when the reset is enabled and `branch` is empty at `ApplicationReadyEvent`, the same reset runs once, so a fresh volume starts with sample data. A non-empty table is left alone, so a deploy does not wipe visitors' changes before the next reset.
 - **Metric** `app_demo_resets_total{outcome="success|failure"}` and one INFO log line per reset (or ERROR with the cause).
 - **Contract follow-up:** `npm run openapi:generate`, a `DemoAccess` alias in `api-types.ts`, an `ApiPaths` entry, and a "Public demo" request in the Postman collection.
 - Prod overlay and `.env.prod.example`: `DEMO_ENABLED`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, `DEMO_GRAFANA_URL`, `DEMO_RESET_ENABLED`, `DEMO_RESET_CRON`, `DEMO_RESET_ZONE`.
 - i18n strings for the card in `en` and `es`.
+- **Login fixes found while building the card** (added during implementation, 2026-11-24):
+  - `LoginComponent.submit()` sets `submitting` before the email check and never clears it when the check fails, so the form stays disabled. Fix it so an invalid email shows the error and leaves the form usable.
+  - With `npm start`, the dev proxy only forwards `/api`, so the card's Swagger link 404s on `localhost:4200`. Also proxy `/swagger-ui.html`, `/swagger-ui/**` and `/v3/**`.
 - Docs: `README.md` (how to try the demo, public URLs), `docs/security.md` (why the credentials are public, what the demo role can and cannot do, the reset), `backend/README.md` (properties, job, metric), `frontend/README.md` (demo card), `docs/roadmap/status.md`, `CHANGELOG.md`.
 
 **Out of scope (for future specs):**
@@ -67,8 +70,8 @@ app.demo.user.email=${DEMO_USER_EMAIL:}
 app.demo.user.password=${DEMO_USER_PASSWORD:}
 app.demo.grafana-url=${DEMO_GRAFANA_URL:}
 app.demo.reset.enabled=${DEMO_RESET_ENABLED:false}
-app.demo.reset.cron=${DEMO_RESET_CRON:0 0 4 * * *}
-app.demo.reset.zone=${DEMO_RESET_ZONE:UTC}
+app.demo.reset.cron=${DEMO_RESET_CRON:0 0 10 * * SAT}
+app.demo.reset.zone=${DEMO_RESET_ZONE:America/Bogota}
 ```
 
 With `app.demo.enabled=true`, a blank email or password fails startup with a clear message. `app.demo.reset.enabled=true` requires `app.demo.enabled=true`.
@@ -128,26 +131,27 @@ Each step leaves the app building and the tests green.
 3. **Reset use case and adapters.** Ports, `ResetDemoDataUseCase`, the JDBC and classpath adapters, the CSV. Test: after creating an extra branch, renaming one, deactivating one, adding an outbox row, disabling the demo user, setting its `failed_login_count` and `locked_until`, and adding SUPER_ADMIN to it, the reset leaves exactly the 12 sample branches, empty `outbox_event` and `processed_event`, and the demo user enabled and unlocked with `{APP_ADMIN}` and the env password (login works). The SUPER_ADMIN, other users and `iam_audit_log` are unchanged.
 4. **Scheduler, startup seed and metric.** `DemoDataResetScheduler`. Tests: with an empty `branch` table and reset on, startup seeds 12 branches. With a non-empty table, startup leaves it. `app_demo_resets_total{outcome="success"}` increments after a reset. The cron itself is not waited on: the test calls the scheduled method.
 5. **Contract and SPA.** Run the backend, `npm run openapi:generate` (with `OPENAPI_SPEC_URL=http://localhost:18091/v3/api-docs`), add the alias, `ApiPaths`, service, query key, login card and i18n strings. Specs: card hidden on 404 and on network error, shown with values on 200, "Fill in" sets both form fields, Grafana link hidden when `grafanaUrl` is blank. Check: `npm test` and `npm run build` pass.
+   - 5b. **Login fixes** (added during implementation): an invalid email no longer leaves `submitting` stuck (spec: the error shows, no login request, the submit button is enabled again), and `proxy.conf.json` forwards the Swagger paths.
 6. **Prod overlay and docs.** `DEMO_*` in `docker-compose.prod.yml` and `.env.prod.example`, Postman request, docs listed in Scope.
 7. *(owner)* **Deploy.** Add the `DEMO_*` values to the server `.env`, then `docker compose up -d --build`. Check the acceptance criteria on `https://code-branchhub.jotaeme.dev`.
 8. **Close.** `docs/roadmap/status.md`, `CHANGELOG.md`, proposed git commands.
 
 ## Acceptance criteria
 
-- [ ] With `DEMO_ENABLED` unset, `GET /api/v1/public/demo` returns 404 Problem Details and no demo user is created.
-- [ ] On the server, `GET https://code-branchhub.jotaeme.dev/api/v1/public/demo` returns 200 with `email`, `password` and `grafanaUrl` without a token.
-- [ ] The login page on the public site shows the demo card. "Fill in" fills both fields, and logging in lands on the dashboard as an APP_ADMIN.
-- [ ] Logged in as the demo user, `/admin` is not in the sidebar, and `GET /api/v1/admin/users` returns 403.
-- [ ] The card links to `/swagger-ui.html` and to `https://code-branchhub-grafana.jotaeme.dev`, and both open.
-- [ ] Locally with the demo off, the login page shows no card and no error.
-- [ ] After a fresh volume, the branch list shows exactly the 12 sample branches (`BR-001` to `BR-012`, 2 inactive).
-- [ ] After changing data as the demo user and triggering the reset (integration test, or a temporary `DEMO_RESET_CRON` a few minutes ahead on the server), the list is back to the 12 sample branches and the demo login still works.
-- [ ] Six wrong passwords for the demo email do not lock it: the next login with the right password succeeds. Other accounts still lock after 5.
-- [ ] The reset does not touch the SUPER_ADMIN, other users, roles or `iam_audit_log`.
-- [ ] `app_demo_resets_total` is visible at `http://127.0.0.1:18093` after a reset.
-- [ ] `./gradlew clean test`, `npm test` and `npm run build` pass. `openapi.generated.ts` was regenerated, not edited by hand.
-- [ ] The Postman collection has the "Public demo" request, and `README.md` explains how to try the demo.
-- [ ] No real demo password in any committed file. It lives only in the server `.env`.
+- [x] With `DEMO_ENABLED` unset, `GET /api/v1/public/demo` returns 404 Problem Details and no demo user is created. *(`PublicDemoControllerDisabledIntegrationTest`, `DemoDisabledIntegrationTest`)*
+- [x] On the server, `GET https://code-branchhub.jotaeme.dev/api/v1/public/demo` returns 200 with `email`, `password` and `grafanaUrl` without a token. *(server, 2026-11-24)*
+- [x] The login page on the public site shows the demo card. "Fill in" fills both fields, and logging in lands on the dashboard as an APP_ADMIN. *(server)*
+- [x] Logged in as the demo user, `/admin` is not in the sidebar, and `GET /api/v1/admin/users` returns 403. *(server)*
+- [x] The card links to `/swagger-ui.html` and to `https://code-branchhub-grafana.jotaeme.dev`, and both open. *(server)*
+- [x] Locally with the demo off, the login page shows no card and no error. *(`login.component.spec.ts`: 404 and network error)*
+- [x] After a fresh volume, the branch list shows exactly the 12 sample branches (`BR-001` to `BR-012`, 2 inactive). *(startup seed: `DemoResetSchedulerIntegrationTest`; the server volume was not fresh, so there the sample came from the forced reset)*
+- [x] After changing data as the demo user and triggering the reset (integration test, or a temporary `DEMO_RESET_CRON` a few minutes ahead on the server), the list is back to the 12 sample branches and the demo login still works. *(`DemoResetIntegrationTest`, and on the server with a temporary `DEMO_RESET_CRON`)*
+- [x] Six wrong passwords for the demo email do not lock it: the next login with the right password succeeds. Other accounts still lock after 5. *(`DemoUserIntegrationTest`, and on the server)*
+- [x] The reset does not touch the SUPER_ADMIN, other users, roles or `iam_audit_log`. *(`DemoResetIntegrationTest` snapshot)*
+- [x] `app_demo_resets_total` is visible at `http://127.0.0.1:18093` after a reset. *(server)*
+- [x] `./gradlew clean test`, `npm test` and `npm run build` pass. `openapi.generated.ts` was regenerated, not edited by hand.
+- [x] The Postman collection has the "Public demo" request, and `README.md` explains how to try the demo.
+- [x] No real demo password in any committed file. It lives only in the server `.env`. *(checked: no tracked or new file contains it; `.env` is gitignored)*
 
 ## Decisions taken and discarded
 
@@ -157,15 +161,23 @@ Each step leaves the app building and the tests green.
 - **Spring `@Scheduled` job**, over a host crontab with a SQL script (lives outside the app and needs host setup) or a scheduler container (one more container). It is versioned, testable with Testcontainers, and uses the scheduling that is already enabled.
 - **Reset by deleting rows, not through the use cases or the outbox.** The reset is maintenance, not a domain event, so it publishes nothing to Kafka. Clearing `outbox_event` and `processed_event` keeps the outbox consistent with the reset table.
 - **The demo user is exempt from the login lockout**, over keeping it (any visitor could lock the demo in repeatable 15-minute windows) or leaving it to a later rate-limiting spec. The lockout protects against password guessing, and this password is public, so the exemption gives nothing away. The exemption lives in the infrastructure adapter, so `application` does not change.
-- **The reset also restores the demo user** (enabled, unlocked, password, `{APP_ADMIN}`). A SUPER_ADMIN mistake, such as disabling it or adding roles, fixes itself overnight.
+- **The reset also restores the demo user** (enabled, unlocked, password, `{APP_ADMIN}`). A SUPER_ADMIN mistake, such as disabling it or adding roles, fixes itself at the next reset.
 - **Seed on startup only when `branch` is empty**, so a fresh volume has data, but a redeploy does not wipe what visitors did that day.
-- **Default cron 04:00 UTC**, overridable by `DEMO_RESET_CRON` and `DEMO_RESET_ZONE`.
+- **Weekly reset, Saturdays 10:00 Colombia time** (`0 0 10 * * SAT` in `America/Bogota`), overridable by `DEMO_RESET_CRON` and `DEMO_RESET_ZONE`. Changed during implementation (2026-11-24) at the owner's request, from the original nightly 04:00 UTC. Trade-off: visitors' changes, including vandalism, stay visible for up to a week.
+- **Login fixes folded into this spec** (decided during implementation, 2026-11-24), over a separate fix branch: both were found while building the demo card on the same screen, and both are small. The `submitting` bug would leave visitors stuck after a typo in the email, and the dev proxy is needed to try the card's Swagger link locally.
+- **Adjustments made during implementation** (2026-11-24), none of which changes the contract:
+  - `IamBootstrapRunner` got an explicit `@Order`, and `DemoUserBootstrapRunner` runs right after it, so the roles exist first. Before, no runner had an order.
+  - `DemoDataResetScheduler` declares `@EnableScheduling` itself. The existing one sits on `KafkaOutboxConfig`, which only loads with `app.notifications.enabled`, so the reset would silently never run with notifications off.
+  - `ResetDemoDataUseCase` also has `seedIfEmpty()` (the startup seed), and its transaction is a proxy added in `ApplicationUseCaseConfig`, so the use case has no Spring types. The bean only exists with `app.demo.enabled=true`.
+  - `DemoProperties.DEMO_ROLE` holds `APP_ADMIN` for the runner and the reset.
+  - The test `application.properties` caps the Hikari pool at 4: every distinct test configuration is a cached context with its own pool on the one shared PostgreSQL, and the new demo contexts exceeded `max_connections`.
+  - The sample data stayed a CSV (`demo/demo-branches.csv`), as listed.
 - **Split from SPEC 04.** SPEC 04 is configuration only. This spec holds the Java and Angular feature work.
 
 ## Identified risks
 
-- **Visitor vandalism between resets.** Offensive branch names stay visible until 04:00. Accepted for a portfolio demo. Rate limiting or moderation would be a later spec.
-- **Spam writes.** A script could create thousands of branches in a day. There is no rate limit (out of scope). The nightly delete still clears them. Cloudflare's default protections apply meanwhile.
+- **Visitor vandalism between resets.** Offensive branch names stay visible until the Saturday reset, up to a week. Accepted for a portfolio demo. Rate limiting or moderation would be a later spec.
+- **Spam writes.** A script could create thousands of branches in a week. There is no rate limit (out of scope). The weekly delete still clears them. Cloudflare's default protections apply meanwhile.
 - **A reset during an in-flight Kafka event.** An event already published but not yet consumed can arrive after `processed_event` was cleared, so the consumer handles it once for a branch that no longer exists. The consumer only logs or notifies, so this is harmless. The test does not cover it.
 - **Startup validation blocks the app.** A typo in `DEMO_USER_*` with `DEMO_ENABLED=true` stops the API, and the public site goes down. This is deliberate (fail fast), and the error message names the missing variable. Step 7 checks the API logs right after deploy.
 - **Public password in the API response.** That is the design. The demo user must never get any role other than APP_ADMIN, and the reset enforces it.

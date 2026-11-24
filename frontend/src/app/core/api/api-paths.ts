@@ -11,6 +11,7 @@ export const ApiPaths = {
   authLogout: apiPath('/api/v1/auth/logout'),
   authRefresh: apiPath('/api/v1/auth/refresh'),
   me: apiPath('/api/v1/me'),
+  publicDemo: apiPath('/api/v1/public/demo'),
   branches: apiPath('/api/v1/branches'),
   adminRoles: apiPath('/api/v1/admin/roles'),
   adminUsers: apiPath('/api/v1/admin/users'),

@@ -7,6 +7,8 @@ import dev.jotaeme.branchhub.infrastructure.persistence.iam.IamUserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +18,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
+@Order(IamBootstrapRunner.ORDER)
 public class IamBootstrapRunner implements ApplicationRunner {
+    /** Runs early so later runners (e.g. the demo user seed) find the base roles. */
+    public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 100;
+
     private static final List<String> BASE_ROLES = List.of("SUPER_ADMIN", "APP_ADMIN", "USER");
 
     private final boolean enabled;

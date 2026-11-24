@@ -64,6 +64,51 @@
             </form>
           </app-busy-section>
         </div>
+
+        @if (demoAccess(); as demo) {
+          <section
+            class="mt-4 rounded-box border border-rule bg-surface p-6 sm:p-8"
+            aria-labelledby="demo-card-title"
+            data-testid="demo-card"
+          >
+            <h2 id="demo-card-title" class="text-lg font-semibold">{{ i18n.t('demoTitle') }}</h2>
+            <p class="mt-1 text-sm text-pretty opacity-80">{{ i18n.t('demoIntro') }}</p>
+            <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+              <dt class="font-semibold">{{ i18n.t('username') }}</dt>
+              <dd class="font-mono break-all" data-testid="demo-email">{{ demo.email }}</dd>
+              <dt class="font-semibold">{{ i18n.t('password') }}</dt>
+              <dd class="font-mono break-all" data-testid="demo-password">{{ demo.password }}</dd>
+            </dl>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm mt-4 w-full"
+              (click)="fillDemoCredentials()"
+              data-testid="demo-fill"
+            >
+              {{ i18n.t('demoFillIn') }}
+            </button>
+            <nav class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm" [attr.aria-label]="i18n.t('demoLinks')">
+              <a
+                class="link"
+                [href]="swaggerUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="demo-swagger-link"
+                >{{ i18n.t('demoApiDocs') }}</a
+              >
+              @if (demoGrafanaUrl(); as grafanaUrl) {
+                <a
+                  class="link"
+                  [href]="grafanaUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="demo-grafana-link"
+                  >{{ i18n.t('demoGrafana') }}</a
+                >
+              }
+            </nav>
+          </section>
+        }
       </div>
     </main>
 

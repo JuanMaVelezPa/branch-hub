@@ -84,22 +84,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMe"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -164,6 +148,38 @@ export interface paths {
         patch: operations["setEnabled"];
         trace?: never;
     };
+    "/api/v1/public/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["demo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/{id}": {
         parameters: {
             query?: never;
@@ -203,6 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** List IAM audit log entries (newest first by default) */
         get: operations["listAuditLogs"];
         put?: never;
         post?: never;
@@ -244,17 +261,6 @@ export interface components {
             username: string;
             password: string;
         };
-        MeResponse: {
-            /** Format: uuid */
-            id?: string;
-            email?: string;
-            enabled?: boolean;
-            /** Format: date-time */
-            lockedUntil?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            roles?: string[];
-        };
         CreateUserRequest: {
             /** Format: email */
             email: string;
@@ -277,6 +283,22 @@ export interface components {
         };
         SetUserEnabledRequest: {
             enabled: boolean;
+        };
+        DemoAccessResponse: {
+            email?: string;
+            password?: string;
+            grafanaUrl?: string;
+        };
+        MeResponse: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            enabled?: boolean;
+            /** Format: date-time */
+            lockedUntil?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            roles?: string[];
         };
         PagedResponseBranchResponse: {
             content?: components["schemas"]["BranchResponse"][];
@@ -495,26 +517,6 @@ export interface operations {
             };
         };
     };
-    getMe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MeResponse"];
-                };
-            };
-        };
-    };
     list_1: {
         parameters: {
             query?: {
@@ -633,6 +635,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AdminUserResponse"];
+                };
+            };
+        };
+    };
+    demo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemoAccessResponse"];
+                };
+            };
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MeResponse"];
                 };
             };
         };
