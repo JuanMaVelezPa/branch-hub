@@ -4,6 +4,22 @@ All notable changes to Branch Hub are documented here. Version labels **`v1.x`**
 
 ## Unreleased
 
+**Public demo access (SPEC 05).** Visitors can try the published app with a shared `APP_ADMIN` account, on sample data that resets every week.
+
+- **API:**
+  - New `GET /api/v1/public/demo` (no auth): `200 {email, password, grafanaUrl}` when `DEMO_ENABLED=true`, otherwise `404` Problem Details.
+  - With the demo on, a runner seeds the demo user (email verified, enabled, role `APP_ADMIN` only) if missing, and failed logins for the demo email no longer count toward the lockout. Every other account keeps it.
+  - `DEMO_*` env vars bind to `app.demo.*`, all off by default. A blank `DEMO_USER_EMAIL` or `DEMO_USER_PASSWORD` with the demo on stops startup with a message naming the variable.
+- **Reset job** (`DEMO_RESET_ENABLED=true`): every Saturday at 10:00 `America/Bogota` by default (`DEMO_RESET_CRON`, `DEMO_RESET_ZONE`). In one transaction it deletes every `branch`, `outbox_event` and `processed_event` row, inserts 12 sample branches (`BR-001`–`BR-012`, 2 inactive, from `demo/demo-branches.csv`), and restores the demo user (enabled, unlocked, env password, roles exactly `{APP_ADMIN}`). It never touches other users, roles or `iam_audit_log`, and publishes nothing to Kafka. It also runs once at startup when `branch` is empty. New metric `app_demo_resets_total{outcome}`.
+- **SPA:** a "Try the demo" card on the login page, shown only on a 200: the credentials, a "Fill in" button (fills the form, does not submit), and links to Swagger and Grafana. `en` and `es` strings. Typings regenerated, with a new `DemoAccess` alias and `ApiPaths.publicDemo`.
+- **Fixes:**
+  - The login form stayed disabled after submitting an email that failed the app's email check.
+  - `npm start` now also proxies `/swagger-ui.html`, `/swagger-ui/**` and `/v3/**`.
+  - Scheduling no longer depends on `app.notifications.enabled` for the demo reset.
+- **Ops:** `docker-compose.prod.yml` passes the `DEMO_*` vars and `.env.prod.example` documents them. **Action needed** on the server: add the `DEMO_*` values to `.env` (the real demo password lives only there). The first reset deletes every existing branch; back up first if any matter.
+- **Tests:** Testcontainers integration tests for the demo user, the lockout exemption, the endpoint, the reset (including rollback) and the scheduler and metric; Vitest specs for the card, the service and the login fix. The test Hikari pool is capped at 4 connections.
+- **Docs:** how to try the demo in the [README](README.md#try-the-demo), why the credentials are public in [security](docs/security.md#the-public-demo-account-spec-05), properties and job in the [backend README](backend/README.md#public-demo), the card in the [frontend README](frontend/README.md#public-demo-card-login), and a "Public demo" request in the Postman collection.
+
 **Published Branch Hub through the shared ingress (SPEC 04).** Configuration only: no application code or API contract change.
 
 - **Host ports:** every port in `docker-compose.yml` is bound to `127.0.0.1` in the block 18090–18095: web `WEB_PORT=18090`, API `API_PORT=18091`, Grafana `GRAFANA_PORT=18092`, Prometheus `PROMETHEUS_PORT=18093`, Alertmanager `ALERTMANAGER_PORT=18094`, PostgreSQL `POSTGRES_PORT=18095`. Kafka (9092) and the Blackbox exporter (9115) no longer publish a host port. **Action needed:** remove `WEB_PORT=8080` / `API_PORT=8081` from your `.env`, recreate the stack and update SSH forwards and database clients (see [getting started](docs/getting-started.md#ports-and-urls)).

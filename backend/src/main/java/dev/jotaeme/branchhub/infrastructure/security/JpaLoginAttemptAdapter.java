@@ -1,6 +1,7 @@
 package dev.jotaeme.branchhub.infrastructure.security;
 
 import dev.jotaeme.branchhub.application.security.port.LoginAttemptPort;
+import dev.jotaeme.branchhub.infrastructure.demo.DemoProperties;
 import dev.jotaeme.branchhub.infrastructure.persistence.iam.IamUserJpaEntity;
 import dev.jotaeme.branchhub.infrastructure.persistence.iam.IamUserRepository;
 import org.springframework.stereotype.Component;
@@ -13,16 +14,23 @@ import java.time.temporal.ChronoUnit;
 public class JpaLoginAttemptAdapter implements LoginAttemptPort {
     private final IamUserRepository users;
     private final LoginLockoutProperties lockoutProperties;
+    private final DemoProperties demoProperties;
 
-    public JpaLoginAttemptAdapter(IamUserRepository users, LoginLockoutProperties lockoutProperties) {
+    public JpaLoginAttemptAdapter(
+            IamUserRepository users, LoginLockoutProperties lockoutProperties, DemoProperties demoProperties) {
         this.users = users;
         this.lockoutProperties = lockoutProperties;
+        this.demoProperties = demoProperties;
     }
 
     @Override
     @Transactional
     public void onFailedLogin(String attemptedEmail) {
         if (attemptedEmail == null || attemptedEmail.isBlank()) {
+            return;
+        }
+        // The demo password is public, so the lockout would only let visitors lock each other out.
+        if (demoProperties.isDemoUser(attemptedEmail)) {
             return;
         }
         users.findByEmailIgnoreCase(attemptedEmail.trim()).ifPresent(this::applyFailure);

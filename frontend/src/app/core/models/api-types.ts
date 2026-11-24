@@ -38,6 +38,14 @@ export type LoginResponse = {
 
 export type LoginRequest = components['schemas']['LoginRequest'];
 
+type OpenApiDemoAccess = components['schemas']['DemoAccessResponse'];
+/** Public demo credentials and links (`GET /api/v1/public/demo`); `grafanaUrl` is '' when unset. */
+export type DemoAccess = {
+  email: NonNullable<OpenApiDemoAccess['email']>;
+  password: NonNullable<OpenApiDemoAccess['password']>;
+  grafanaUrl: NonNullable<OpenApiDemoAccess['grafanaUrl']>;
+};
+
 type OpenApiMe = components['schemas']['MeResponse'];
 export type MeProfile = {
   id: NonNullable<OpenApiMe['id']>;

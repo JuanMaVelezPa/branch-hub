@@ -51,6 +51,14 @@ export const en = {
   sessionExpiredToast: 'Your session expired. Sign in again to continue.',
   forbiddenAdmin: 'You need the SUPER_ADMIN role to open this page.',
 
+  // Public demo card (login page)
+  demoTitle: 'Try the demo',
+  demoIntro: 'Sign in as an app admin to add, edit and deactivate branches. The sample data resets every week.',
+  demoFillIn: 'Fill in',
+  demoLinks: 'Demo tools',
+  demoApiDocs: 'API docs (Swagger)',
+  demoGrafana: 'Metrics (Grafana)',
+
   // Dashboard
   dashboardTitle: 'Dashboard',
   dashboardBranchesOne: '{n} branch in the registry.',

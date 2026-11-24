@@ -7,7 +7,15 @@ A full-stack app to manage company branches, built like a production system: Spr
 - **App:** [code-branchhub.jotaeme.dev](https://code-branchhub.jotaeme.dev). Swagger UI is at [/swagger-ui.html](https://code-branchhub.jotaeme.dev/swagger-ui.html) on the same host.
 - **Grafana (read-only, no login):** [code-branchhub-grafana.jotaeme.dev](https://code-branchhub-grafana.jotaeme.dev)
 
-Both run on the prod overlay behind a Cloudflare Tunnel. Only the owner can log in to the app for now; a public demo account is planned.
+Both run on the prod overlay behind a Cloudflare Tunnel.
+
+### Try the demo
+
+1. Open [code-branchhub.jotaeme.dev](https://code-branchhub.jotaeme.dev). The login page shows a **Try the demo** card with a public demo account.
+2. Click **Fill in**, then **Sign in**.
+3. You are an `APP_ADMIN`: list, create, edit and deactivate branches. The `/admin` area stays `SUPER_ADMIN` only.
+
+Everyone shares the same sample data (12 branches), and it resets every Saturday at 10:00 (Colombia time, UTC−5), so feel free to change things. The card also links to Swagger UI and Grafana. Why the password is public and what the account cannot do: [docs/security.md §8](docs/security.md#8-what-is-public-on-the-published-demo-and-why).
 
 ## Highlights
 

@@ -51,6 +51,10 @@ public class AppMetrics {
         counter("app_iam_admin_action_total", outcome, "action", action).increment();
     }
 
+    public void incrementDemoReset(String outcome) {
+        counter("app_demo_resets_total", outcome).increment();
+    }
+
     private Counter counter(String metricName, String outcome) {
         return Counter.builder(metricName)
                 .description("Business counter for application flows")

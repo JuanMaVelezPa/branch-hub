@@ -99,6 +99,7 @@ The `prod` profile on its own disables Swagger, exposes only `health,info` and h
 - `SECURITY_COOKIES_SECURE=true` (the refresh cookie gets `Secure`).
 - `SPRINGDOC_API_DOCS_ENABLED` / `SPRINGDOC_SWAGGER_UI_ENABLED=true`: Swagger is published on purpose at `https://code-branchhub.jotaeme.dev/swagger-ui.html`.
 - `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus` and `APP_SECURITY_ACTUATOR_PUBLIC=true`, so Prometheus scrapes over the private network. The API is not on the `edge` network and Nginx serves only `/actuator/health` publicly.
+- The `DEMO_*` variables from `.env` (all off when unset). See [Public demo](#public-demo).
 
 It requires the external `edge` network. See [docs/getting-started.md](../docs/getting-started.md#server-mode-the-prod-overlay).
 
@@ -119,7 +120,7 @@ Phase-aligned notes (Problem Details, JWT + refresh cookie, what minification do
 
 ## Security matrix (summary)
 
-- Public: `/api/v1/auth/**`, Swagger/OpenAPI (off in the `prod` profile, turned back on by the prod overlay), `GET /actuator/health`, `GET /actuator/info`
+- Public: `/api/v1/auth/**`, `GET /api/v1/public/demo`, Swagger/OpenAPI (off in the `prod` profile, turned back on by the prod overlay), `GET /actuator/health`, `GET /actuator/info`
 - Optional public: `/actuator/metrics/**`, `/actuator/prometheus` (`APP_SECURITY_ACTUATOR_PUBLIC`; through `web`, Nginx still returns 404 for every actuator path except health)
 - **SUPER_ADMIN:** `/api/v1/admin/**` (users, roles, **audit log** `GET /api/v1/admin/audit-logs`)
 - **SUPER_ADMIN / APP_ADMIN:** `/api/v1/branches/**`
@@ -139,6 +140,28 @@ On startup, the backend can seed a first **SUPER_ADMIN** account (if missing) so
 - **Seed password:** `APP_SUPER_ADMIN_PASSWORD` (default `Admin_ChangeMe_2026!`)
 
 For production, treat this as a **break-glass** path: rotate secrets and restrict access to env/config.
+
+## Public demo
+
+A public `APP_ADMIN` account for visitors of the published site (SPEC 05; the why is in [docs/security.md §8](../docs/security.md#the-public-demo-account-spec-05)). Everything is off by default.
+
+| Property | Env var | Default | Meaning |
+|----------|---------|---------|---------|
+| `app.demo.enabled` | `DEMO_ENABLED` | `false` | Seeds the demo user, serves `GET /api/v1/public/demo`, exempts the demo email from the lockout |
+| `app.demo.user.email` | `DEMO_USER_EMAIL` | (blank) | Demo login; required when enabled |
+| `app.demo.user.password` | `DEMO_USER_PASSWORD` | (blank) | Demo password, public by design; required when enabled |
+| `app.demo.grafana-url` | `DEMO_GRAFANA_URL` | (blank) | Grafana link on the login card; blank hides it |
+| `app.demo.reset.enabled` | `DEMO_RESET_ENABLED` | `false` | Scheduled reset and startup seed; requires `app.demo.enabled=true` |
+| `app.demo.reset.cron` | `DEMO_RESET_CRON` | `0 0 10 * * SAT` | Spring cron (seconds first); weekly, Saturdays 10:00 |
+| `app.demo.reset.zone` | `DEMO_RESET_ZONE` | `America/Bogota` | Time zone of the cron |
+
+A blank email or password with the demo on, or the reset on with the demo off, fails startup with a message that names the variable.
+
+- **Demo user:** `DemoUserBootstrapRunner` creates it after `IamBootstrapRunner` when no account has that email: verified, enabled, role `APP_ADMIN` only. An existing account is left alone; the reset repairs it.
+- **Endpoint:** `GET /api/v1/public/demo` (`permitAll`) → `200 {email, password, grafanaUrl}` (`grafanaUrl` is `""` when unset), or `404` Problem Details when the demo is off.
+- **Reset:** `ResetDemoDataUseCase` (ports `DemoDataPort`, `DemoSampleDataPort`; one transaction set where the bean is wired). It deletes all `processed_event`, `outbox_event` and `branch` rows, inserts the 12 branches from `src/main/resources/demo/demo-branches.csv` (`BR-001`…`BR-012`, 2 inactive), and restores the demo user (enabled, env password, `failed_login_count=0`, `locked_until=NULL`, roles exactly `{APP_ADMIN}`; recreated if missing). Plain JDBC, no domain events, nothing sent to Kafka.
+- **Scheduler:** `DemoDataResetScheduler` runs the reset on the cron, and once on `ApplicationReadyEvent` only if `branch` is empty (a redeploy keeps the day's changes). It enables scheduling itself, so it does not depend on `app.notifications.enabled`. One INFO line per reset (`Demo data reset completed: trigger=scheduled|startup branches=12 durationMs=…`) or ERROR with the cause; a failure never stops the app.
+- **Metric:** `app_demo_resets_total{outcome="success|failure"}`.
 
 ## Pagination (standard for list endpoints)
 
@@ -162,7 +185,7 @@ Handled errors use `application/problem+json`-style bodies (`type`, `title`, `st
 
 ## Metrics (examples)
 
-`outbox_lag`, `failed_notifications_total`, `app_auth_login_total`, `app_branch_command_total`, `app_iam_admin_action_total`, `app_use_case_duration`, `app_outbox_publish_total`, `app_notification_consumer_total`.
+`outbox_lag`, `failed_notifications_total`, `app_auth_login_total`, `app_branch_command_total`, `app_iam_admin_action_total`, `app_use_case_duration`, `app_outbox_publish_total`, `app_notification_consumer_total`, `app_demo_resets_total` (only when the demo reset is on; no dashboard panel or alert yet).
 
 ## Alerting
 
@@ -175,6 +198,8 @@ From **`backend/`**, with Docker running (Spring context tests use a shared Test
 ```bash
 ./gradlew clean test
 ```
+
+Every distinct test configuration (`@DynamicPropertySource`, `@MockitoBean`, …) is a cached Spring context with its own Hikari pool against the one shared container, so the test `application.properties` caps the pool at 4 connections to stay under PostgreSQL's `max_connections`. Prefer the default configuration when a test does not need its own.
 
 Windows: `gradlew.bat`. Optional:
 

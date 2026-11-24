@@ -3,5 +3,20 @@
     "target": "http://localhost:18091",
     "secure": false,
     "changeOrigin": true
+  },
+  "/swagger-ui.html": {
+    "target": "http://localhost:18091",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/swagger-ui": {
+    "target": "http://localhost:18091",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/v3": {
+    "target": "http://localhost:18091",
+    "secure": false,
+    "changeOrigin": true
   }
 }
